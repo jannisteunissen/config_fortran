@@ -11,7 +11,7 @@ module m_config
   integer, parameter :: CFG_integer_type = 1 !< Integer type
   integer, parameter :: CFG_real_type    = 2 !< Real number type
   integer, parameter :: CFG_string_type  = 3 !< String type
-  integer, parameter :: CFG_bool_type    = 4 !< Boolean/logical type
+  integer, parameter :: CFG_logic_type   = 4 !< Boolean/logical type
 
   !> Names of the types
   character(len=10), parameter :: CFG_type_names(CFG_num_types) = &
@@ -67,7 +67,7 @@ module m_config
   interface CFG_get
      module procedure :: get_real, get_real_array
      module procedure :: get_int, get_int_array
-     module procedure :: get_bool, get_bool_array
+     module procedure :: get_logic, get_logic_array
      module procedure :: get_string, get_string_array
   end interface CFG_get
 
@@ -76,7 +76,7 @@ module m_config
   public :: CFG_integer_type
   public :: CFG_real_type
   public :: CFG_string_type
-  public :: CFG_bool_type
+  public :: CFG_logic_type
 
   ! Constants
   public :: CFG_name_len
@@ -133,33 +133,39 @@ contains
     character(len=*), intent(in) :: filename
 
     integer, parameter            :: my_unit = 123
-    integer                       :: io_state, equalSignPos, lineEnd
+    integer                       :: io_state, equal_sign_ix, lineEnd
     integer                       :: n, ix, line_number, n_entries
     integer                       :: ix_start(CFG_max_array_size)
     integer                       :: ix_end(CFG_max_array_size)
     character(len=CFG_name_len)   :: var_name
-    character(len=CFG_string_len) :: line, err_string
+    character(len=CFG_name_len)   :: line_fmt
+    character(len=CFG_string_len) :: err_string
+    character(len=CFG_string_len) :: line
 
     open(my_unit, FILE=trim(filename), status = "OLD", &
          action="READ", err=999, iostat=io_state)
     line_number = 0
 
+    write(line_fmt, "(A,I0,A)") "(A", CFG_string_len, ")"
+
     do
-       read(my_unit, FMT=*, ERR=999, end = 666) line
+       read(my_unit, FMT=trim(line_fmt), ERR=999, end=666) line
        line_number = line_number + 1
 
-       lineEnd = scan(line, '#') - 1       ! Don't use the part of the line after '#'
+       ! Don't use the part of the line after '#'
+       lineEnd = scan(line, '#') - 1
        if (lineEnd == -1) lineEnd = CFG_string_len
        line = line(1:lineEnd)
 
-       equalSignPos = scan(line, '=')      ! Locate the '=' sign, if there is no such sign then skip the line
-       if (equalSignPos == 0) cycle
+       ! Locate the '=' sign, if there is no such sign then skip the line
+       equal_sign_ix = scan(line, '=')
+       if (equal_sign_ix == 0) cycle
 
-       var_name = line(1 : equalSignPos - 1)  ! Set variable name
-       var_name = adjustl(var_name)              ! Remove leading blanks
+       var_name = line(1 : equal_sign_ix - 1)  ! Set variable name
+       var_name = adjustl(var_name)            ! Remove leading blanks
 
-       line = line(equalSignPos + 1 : lineEnd)   ! Set line to the values behind the '=' sign
-       line = adjustl(line)                      ! Remove leading blanks
+       line = line(equal_sign_ix + 1 : lineEnd) ! Set line to the values behind the '=' sign
+       line = adjustl(line)                     ! Remove leading blanks
 
        ! Find variable corresponding to name in file
        call get_var_index(cfg, var_name, ix)
@@ -191,7 +197,7 @@ contains
              read(line(ix_start(n):ix_end(n)), *, ERR=999) cfg%vars(ix)%real_data(n)
           case (CFG_string_type)
              cfg%vars(ix)%char_data(n) = trim(line(ix_start(n):ix_end(n)))
-          case (CFG_bool_type)
+          case (CFG_logic_type)
              read(line(ix_start(n):ix_end(n)), *, ERR=999) cfg%vars(ix)%logic_data(n)
           end select
        end do
@@ -218,7 +224,7 @@ contains
     case (CFG_integer_type)
        deallocate( variable%int_data )
        allocate( variable%int_data(variable%var_size) )
-    case (CFG_bool_type)
+    case (CFG_logic_type)
        deallocate( variable%logic_data )
        allocate( variable%logic_data(variable%var_size) )
     case (CFG_real_type)
@@ -292,7 +298,7 @@ contains
        allocate( cfg%vars(num_vars)%real_data(var_size) )
     case (CFG_string_type)
        allocate( cfg%vars(num_vars)%char_data(var_size) )
-    case (CFG_bool_type)
+    case (CFG_logic_type)
        allocate( cfg%vars(num_vars)%logic_data(var_size) )
     end select
   end subroutine prepare_store_var
@@ -391,7 +397,7 @@ contains
     type(CFG_t), intent(inout) :: cfg
     character(len=*), intent(in)  :: var_name, comment
     logical, intent(in)           :: logic_data
-    call prepare_store_var(cfg, var_name, CFG_bool_type, 1, comment)
+    call prepare_store_var(cfg, var_name, CFG_logic_type, 1, comment)
     cfg%vars(cfg%num_vars)%logic_data(1) = logic_data
   end subroutine add_logical
 
@@ -403,7 +409,7 @@ contains
     character(len=*), intent(in)  :: var_name, comment
     logical, intent(in)           :: logic_data(:)
     logical, intent(in), optional :: dynamic_size
-    call prepare_store_var(cfg, var_name, CFG_bool_type, &
+    call prepare_store_var(cfg, var_name, CFG_logic_type, &
          size(logic_data), comment, dynamic_size)
     cfg%vars(cfg%num_vars)%logic_data = logic_data
   end subroutine add_logical_array
@@ -442,15 +448,15 @@ contains
   end subroutine get_string_array
 
   !> Get a logical array of a given name
-  subroutine get_bool_array(cfg, var_name, logic_data)
+  subroutine get_logic_array(cfg, var_name, logic_data)
     type(CFG_t), intent(in) :: cfg
     character(len=*), intent(in)     :: var_name
     logical, intent(inout)           :: logic_data(:)
     integer :: ix
-    call prepare_get_var(cfg, var_name, CFG_bool_type, &
+    call prepare_get_var(cfg, var_name, CFG_logic_type, &
          size(logic_data), ix)
     logic_data   = cfg%vars(ix)%logic_data
-  end subroutine get_bool_array
+  end subroutine get_logic_array
 
   !> Get a real value of a given name
   subroutine get_real(cfg, var_name, res)
@@ -473,14 +479,14 @@ contains
   end subroutine get_int
 
   !> Get a logical value of a given name
-  subroutine get_bool(cfg, var_name, res)
+  subroutine get_logic(cfg, var_name, res)
     type(CFG_t), intent(in)      :: cfg
     character(len=*), intent(in) :: var_name
     logical, intent(out)         :: res
     integer                      :: ix
-    call prepare_get_var(cfg, var_name, CFG_bool_type, 1, ix)
+    call prepare_get_var(cfg, var_name, CFG_logic_type, 1, ix)
     res = cfg%vars(ix)%logic_data(1)
-  end subroutine get_bool
+  end subroutine get_logic
 
   !> Get a character value of a given name
   subroutine get_string(cfg, var_name, res)
@@ -570,7 +576,7 @@ contains
              write(myUnit, ADVANCE="NO", ERR=998, FMT="(A, A)") &
                   trim(cfg%vars(i)%char_data(j)), " "
           end do
-       case (CFG_bool_type)
+       case (CFG_logic_type)
           do j = 1, cfg%vars(i)%var_size
              write(myUnit, ADVANCE="NO", ERR=998, FMT="(L1, A)") &
                   cfg%vars(i)%logic_data(j), " "
