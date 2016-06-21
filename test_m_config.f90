@@ -7,7 +7,7 @@ program test_m_config
   type(CFG_t) :: my_cfg
 
   ! Some dummy variables
-  real(dp) :: my_reals(3)
+  real(dp), allocatable :: my_reals(:)
   logical  :: my_logic
   integer  :: my_int
   integer  :: n_reals
@@ -56,8 +56,10 @@ program test_m_config
   call CFG_get_size(my_cfg, "my_fav_reals", n_reals)
   print *, "Array size of favourite numbers:", n_reals
 
+  allocate(my_reals(n_reals))
   call CFG_get(my_cfg, "my_fav_reals", my_reals)
   print *, "my favourite numbers:", my_reals
+  deallocate(my_reals)
 
   call CFG_get_type(my_cfg, "full_name", variable_type)
   print *, "type of full name:", variable_type
