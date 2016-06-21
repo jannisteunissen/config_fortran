@@ -49,3 +49,11 @@ A modern Fortran compiler that supports Fortran 2008. The included `Makefile` wa
 
 * Allow `#` to appear in strings.
 * Prevent user from creating same variable twice
+* Write tests
+
+## Alternatives
+
+If you are using `C` or `C++`, you can for example use
+
+* [libconfig](http://www.hyperrealm.com/libconfig/)
+* [config4*](http://www.config4star.org/)
