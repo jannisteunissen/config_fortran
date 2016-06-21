@@ -1,5 +1,5 @@
 FC 	:= gfortran
-FFLAGS	:= -O0 -g -std=f2008 -Wall -Wextra
+FFLAGS	:= -O2 -g -std=f2008 -Wall -Wextra
 
 OBJS	:= m_config.o
 
