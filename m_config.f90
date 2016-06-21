@@ -1,0 +1,727 @@
+!> Module that allows working with a configuration file
+module m_config
+
+  implicit none
+  private
+
+  !> The double precision kind-parameter
+  integer, parameter :: dp             = kind(0.0d0)
+
+  integer, parameter :: CFG_num_types    = 4 !< Number of variable types
+  integer, parameter :: CFG_integer_type = 1 !< Integer type
+  integer, parameter :: CFG_real_type    = 2 !< Real number type
+  integer, parameter :: CFG_string_type  = 3 !< String type
+  integer, parameter :: CFG_bool_type    = 4 !< Boolean/logical type
+
+  !> Names of the types
+  character(len=10), parameter :: CFG_type_names(CFG_num_types) = &
+       [character(len=10) :: "integer", "real", "string ", "logical"]
+
+  integer, parameter :: CFG_name_len   = 80  !< Maximum length of variable names
+  integer, parameter :: CFG_string_len = 200 !< Fixed length of string type
+
+  !> Maximum number of entries in a variable (if it's an array)
+  integer, parameter :: CFG_max_array_size = 20
+
+  !> The separator(s) for array-like variables (space, comma, ', ", and tab)
+  character(len=*), parameter :: CFG_separators = " ,'"""//char(9)
+
+  !> The type of a configuration variable
+  type CFG_var_t
+     private
+     !> Name of the variable
+     character(len=CFG_name_len)   :: var_name
+     !> Description of variable
+     character(len=CFG_string_len) :: description
+     !> Type of variable
+     integer                       :: var_type
+     !> Size of variable, 1 means scalar, > 1 means array
+     integer                       :: var_size
+     !> Whether the variable size is flexible
+     logical                       :: dynamic_size
+
+     ! These are the arrays used for storage. In the future, a "pointer" based
+     ! approach could be used.
+     real(dp), allocatable                      :: real_data(:)
+     integer, allocatable                       :: int_data(:)
+     character(len=CFG_string_len), allocatable :: char_data(:)
+     logical, allocatable                       :: logic_data(:)
+  end type CFG_var_t
+
+  !> The configuration that contains all the variables
+  type CFG_t
+     logical                      :: sorted = .false.
+     integer                      :: num_vars = 0
+     type(CFG_var_t), allocatable :: vars(:)
+  end type CFG_t
+
+  !> Interface to add variables to the configuration
+  interface CFG_add
+     module procedure :: add_real, add_real_array
+     module procedure :: add_int, add_int_array
+     module procedure :: add_string, add_string_array
+     module procedure :: add_logical, add_logical_array
+  end interface CFG_add
+
+  !> Interface to get variables from the configuration
+  interface CFG_get
+     module procedure :: get_real, get_real_array
+     module procedure :: get_int, get_int_array
+     module procedure :: get_bool, get_bool_array
+     module procedure :: get_string, get_string_array
+  end interface CFG_get
+
+  ! Public types
+  public :: CFG_t
+  public :: CFG_integer_type
+  public :: CFG_real_type
+  public :: CFG_string_type
+  public :: CFG_bool_type
+
+  ! Constants
+  public :: CFG_name_len
+  public :: CFG_string_len
+
+  ! Public methods
+  public :: CFG_add
+  public :: CFG_get
+  public :: CFG_get_size
+  public :: CFG_get_type
+  public :: CFG_sort
+  public :: CFG_write
+  public :: CFG_read_file
+
+contains
+
+  !> This routine will be called if an error occurs in one of the subroutines of
+  !> this module.
+  subroutine handle_error(err_string)
+    character(len=*), intent(in) :: err_string
+
+    print *, "The following error occured in m_config:"
+    print *, trim(err_string)
+
+    ! It is usually best to quit after an error, to make sure the error message
+    ! is not overlooked in the program's output
+    stop
+  end subroutine handle_error
+
+  !> Return the index of the variable with name 'var_name', or -1 if not found.
+  subroutine get_var_index(cfg, var_name, ix)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(inout)       :: ix
+    integer                      :: i
+
+    if (cfg%sorted) then
+       call binary_search_variable(cfg, var_name, ix)
+    else
+       ! Linear search
+       do i = 1, cfg%num_vars
+          if (cfg%vars(i)%var_name == var_name) exit
+       end do
+
+       ! If not found, set i to -1
+       if (i == cfg%num_vars + 1) i = -1
+       ix = i
+    end if
+  end subroutine get_var_index
+
+  !> Update the variables in the configartion with the values found in 'filename'
+  subroutine CFG_read_file(cfg, filename)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: filename
+
+    integer, parameter            :: my_unit = 123
+    integer                       :: io_state, equalSignPos, lineEnd
+    integer                       :: n, ix, line_number, n_entries
+    integer                       :: ix_start(CFG_max_array_size)
+    integer                       :: ix_end(CFG_max_array_size)
+    character(len=CFG_name_len)   :: var_name
+    character(len=CFG_string_len) :: line, err_string
+
+    open(my_unit, FILE=trim(filename), status = "OLD", &
+         action="READ", err=999, iostat=io_state)
+    line_number = 0
+
+    do
+       read(my_unit, FMT=*, ERR=999, end = 666) line
+       line_number = line_number + 1
+
+       lineEnd = scan(line, '#') - 1       ! Don't use the part of the line after '#'
+       if (lineEnd == -1) lineEnd = CFG_string_len
+       line = line(1:lineEnd)
+
+       equalSignPos = scan(line, '=')      ! Locate the '=' sign, if there is no such sign then skip the line
+       if (equalSignPos == 0) cycle
+
+       var_name = line(1 : equalSignPos - 1)  ! Set variable name
+       var_name = adjustl(var_name)              ! Remove leading blanks
+
+       line = line(equalSignPos + 1 : lineEnd)   ! Set line to the values behind the '=' sign
+       line = adjustl(line)                      ! Remove leading blanks
+
+       ! Find variable corresponding to name in file
+       call get_var_index(cfg, var_name, ix)
+
+       if (ix <= 0) then
+          call handle_error("CFG_read_file: variable [" // trim(var_name) // &
+               "] from [" //  filename // "] could not be updated")
+       end if
+
+       ! Get the start and end positions of the line content, and the number of entries
+       call get_fields_string(line, CFG_separators, CFG_max_array_size, &
+            n_entries, ix_start, ix_end)
+
+       if (cfg%vars(ix)%var_size /= n_entries) then
+          if (.not. cfg%vars(ix)%dynamic_size) then
+             call handle_error("CFG_read_file: variable [" // trim(var_name) // &
+                  "] from [" //  filename // "] has the wrong number of entries")
+          else
+             cfg%vars(ix)%var_size = n_entries
+             call resize_storage(cfg%vars(ix))
+          end if
+       end if
+
+       do n = 1, n_entries
+          select case (cfg%vars(ix)%var_type)
+          case (CFG_integer_type)
+             read(line(ix_start(n):ix_end(n)), *, ERR=999) cfg%vars(ix)%int_data(n)
+          case (CFG_real_type)
+             read(line(ix_start(n):ix_end(n)), *, ERR=999) cfg%vars(ix)%real_data(n)
+          case (CFG_string_type)
+             cfg%vars(ix)%char_data(n) = trim(line(ix_start(n):ix_end(n)))
+          case (CFG_bool_type)
+             read(line(ix_start(n):ix_end(n)), *, ERR=999) cfg%vars(ix)%logic_data(n)
+          end select
+       end do
+    end do
+
+666 continue ! Routine ends here if the end of "filename" is reached
+    close(my_unit, STATUS = "KEEP", ERR=999, IOSTAT=io_state)
+    return
+
+999 continue
+    write(err_string, *) "io_state = ", io_state, " while reading from ", &
+         trim(filename), " at line ", line_number
+    call handle_error("CFG_read_file:" // err_string)
+    return
+
+  end subroutine CFG_read_file
+
+  !> Resize the storage size of variable, which can be of type integer, logical,
+  !> real or character
+  subroutine resize_storage(variable)
+    type(CFG_var_t), intent(inout) :: variable
+
+    select case (variable%var_type)
+    case (CFG_integer_type)
+       deallocate( variable%int_data )
+       allocate( variable%int_data(variable%var_size) )
+    case (CFG_bool_type)
+       deallocate( variable%logic_data )
+       allocate( variable%logic_data(variable%var_size) )
+    case (CFG_real_type)
+       deallocate( variable%real_data )
+       allocate( variable%real_data(variable%var_size) )
+    case (CFG_string_type)
+       deallocate( variable%char_data )
+       allocate( variable%char_data(variable%var_size) )
+    end select
+  end subroutine resize_storage
+
+  !> Performa a binary search for the variable 'var_name'
+  subroutine binary_search_variable(cfg, var_name, ix)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(inout)       :: ix
+
+    integer                       :: i_min, i_max, i_mid
+
+    i_min = 1
+    i_max = cfg%num_vars
+    ix    = - 1
+
+    do while (i_min < i_max)
+       i_mid = i_min + (i_max - i_min) / 2
+       if ( llt(cfg%vars(i_mid)%var_name, var_name) ) then
+          i_min = i_mid + 1
+       else
+          i_max = i_mid
+       end if
+    end do
+
+    ! If not found, binary_search_variable is not set here, and stays -1
+    if (i_max == i_min .and. cfg%vars(i_min)%var_name == var_name) then
+       ix = i_min
+    else
+       ix = -1
+    end if
+  end subroutine binary_search_variable
+
+  !> Helper routine to store variables. This is useful because a lot of the same
+  !> code is executed for the different types of variables.
+  subroutine prepare_store_var(cfg, var_name, var_type, var_size, &
+       description, dynamic_size)
+    type(CFG_t), intent(inout)    :: cfg
+    character(len=*), intent(in)  :: var_name, description
+    integer, intent(in)           :: var_type, var_size
+    logical, intent(in), optional :: dynamic_size
+    integer                       :: num_vars
+
+    call ensure_free_storage(cfg)
+
+    cfg%sorted                   = .false.
+    num_vars                       = cfg%num_vars + 1
+    cfg%num_vars                   = num_vars
+    cfg%vars(num_vars)%var_name    = var_name
+    cfg%vars(num_vars)%description = description
+    cfg%vars(num_vars)%var_type    = var_type
+    cfg%vars(num_vars)%var_size    = var_size
+
+    if (present(dynamic_size)) then
+       cfg%vars(num_vars)%dynamic_size = dynamic_size
+    else
+       cfg%vars(num_vars)%dynamic_size = .false.
+    end if
+
+    select case (cfg%vars(num_vars)%var_type)
+    case (CFG_integer_type)
+       allocate( cfg%vars(num_vars)%int_data(var_size) )
+    case (CFG_real_type)
+       allocate( cfg%vars(num_vars)%real_data(var_size) )
+    case (CFG_string_type)
+       allocate( cfg%vars(num_vars)%char_data(var_size) )
+    case (CFG_bool_type)
+       allocate( cfg%vars(num_vars)%logic_data(var_size) )
+    end select
+  end subroutine prepare_store_var
+
+  !> Helper routine to get variables. This is useful because a lot of the same
+  !> code is executed for the different types of variables.
+  subroutine prepare_get_var(cfg, var_name, var_type, var_size, ix)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(in)          :: var_type, var_size
+    integer, intent(out)         :: ix
+    character(len=CFG_string_len)      :: err_string
+
+    call get_var_index(cfg, var_name, ix)
+
+    if (ix == -1) then
+       call handle_error(&
+            "CFG_get(...): variable ["//var_name//"] not found")
+    else if (cfg%vars(ix)%var_type /= var_type) then
+       write(err_string, fmt="(A)") "CFG_get(...): variable [" &
+            // var_name // "] has different type (" // &
+            trim(CFG_type_names(cfg%vars(ix)%var_type)) // &
+            ") than requested (" // trim(CFG_type_names(var_type)) // ")"
+       call handle_error(err_string)
+    else if (cfg%vars(ix)%var_size /= var_size) then
+       write(err_string, fmt="(A,I0,A,I0,A)") "CFG_get(...): variable [" &
+            // var_name // "] has different size (", cfg%vars(ix)%var_size, &
+            ") than requested (", var_size, ")"
+       call handle_error(err_string)
+    end if
+  end subroutine prepare_get_var
+
+  !> Add a configuration variable with a real value
+  subroutine add_real(cfg, var_name, real_data, comment)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    real(dp), intent(in)  :: real_data
+    call prepare_store_var(cfg, var_name, CFG_real_type, 1, comment)
+    cfg%vars(cfg%num_vars)%real_data(1) = real_data
+  end subroutine add_real
+
+  !> Add a configuration variable with an array of type
+  !  real
+  subroutine add_real_array(cfg, var_name, real_data, comment, dynamic_size)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    real(dp), intent(in)  :: real_data(:)
+    logical, intent(in), optional :: dynamic_size
+    call prepare_store_var(cfg, var_name, CFG_real_type, &
+         size(real_data), comment, dynamic_size)
+    cfg%vars(cfg%num_vars)%real_data = real_data
+  end subroutine add_real_array
+
+  !> Add a configuration variable with an integer value
+  subroutine add_int(cfg, var_name, int_data, comment)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    integer, intent(in)  :: int_data
+    call prepare_store_var(cfg, var_name, CFG_integer_type, 1, comment)
+    cfg%vars(cfg%num_vars)%int_data(1) = int_data
+  end subroutine add_int
+
+  !> Add a configuration variable with an array of type integer
+  subroutine add_int_array(cfg, var_name, int_data, comment, dynamic_size)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    integer, intent(in)           :: int_data(:)
+    logical, intent(in), optional :: dynamic_size
+    call prepare_store_var(cfg, var_name, CFG_integer_type, &
+         size(int_data), comment, dynamic_size)
+    cfg%vars(cfg%num_vars)%int_data = int_data
+  end subroutine add_int_array
+
+  !> Add a configuration variable with an character value
+  subroutine add_string(cfg, var_name, char_data, comment)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment, char_data
+    call prepare_store_var(cfg, var_name, CFG_string_type, 1, comment)
+    cfg%vars(cfg%num_vars)%char_data(1) = char_data
+  end subroutine add_string
+
+  !> Add a configuration variable with an array of type
+  !  character
+  subroutine add_string_array(cfg, var_name, char_data, &
+       comment, dynamic_size)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment, char_data(:)
+    logical, intent(in), optional :: dynamic_size
+    call prepare_store_var(cfg, var_name, CFG_string_type, &
+         size(char_data), comment, dynamic_size)
+    cfg%vars(cfg%num_vars)%char_data = char_data
+  end subroutine add_string_array
+
+  !> Add a configuration variable with an logical value
+  subroutine add_logical(cfg, var_name, logic_data, comment)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    logical, intent(in)           :: logic_data
+    call prepare_store_var(cfg, var_name, CFG_bool_type, 1, comment)
+    cfg%vars(cfg%num_vars)%logic_data(1) = logic_data
+  end subroutine add_logical
+
+  !> Add a configuration variable with an array of type
+  !  logical
+  subroutine add_logical_array(cfg, var_name, logic_data, &
+       comment, dynamic_size)
+    type(CFG_t), intent(inout) :: cfg
+    character(len=*), intent(in)  :: var_name, comment
+    logical, intent(in)           :: logic_data(:)
+    logical, intent(in), optional :: dynamic_size
+    call prepare_store_var(cfg, var_name, CFG_bool_type, &
+         size(logic_data), comment, dynamic_size)
+    cfg%vars(cfg%num_vars)%logic_data = logic_data
+  end subroutine add_logical_array
+
+  !> Get a real array of a given name
+  subroutine get_real_array(cfg, var_name, real_data)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    real(dp), intent(inout)      :: real_data(:)
+    integer                      :: ix
+    call prepare_get_var(cfg, var_name, CFG_real_type, &
+         size(real_data), ix)
+    real_data = cfg%vars(ix)%real_data
+  end subroutine get_real_array
+
+  !> Get a integer array of a given name
+  subroutine get_int_array(cfg, var_name, int_data)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(inout)       :: int_data(:)
+    integer                      :: ix
+    call prepare_get_var(cfg, var_name, CFG_integer_type, &
+         size(int_data), ix)
+    int_data    = cfg%vars(ix)%int_data
+  end subroutine get_int_array
+
+  !> Get a character array of a given name
+  subroutine get_string_array(cfg, var_name, char_data)
+    type(CFG_t), intent(in) :: cfg
+    character(len=*), intent(in)     :: var_name
+    character(len=*), intent(inout)  :: char_data(:)
+    integer :: ix
+    call prepare_get_var(cfg, var_name, CFG_string_type, &
+         size(char_data), ix)
+    char_data   = cfg%vars(ix)%char_data
+  end subroutine get_string_array
+
+  !> Get a logical array of a given name
+  subroutine get_bool_array(cfg, var_name, logic_data)
+    type(CFG_t), intent(in) :: cfg
+    character(len=*), intent(in)     :: var_name
+    logical, intent(inout)           :: logic_data(:)
+    integer :: ix
+    call prepare_get_var(cfg, var_name, CFG_bool_type, &
+         size(logic_data), ix)
+    logic_data   = cfg%vars(ix)%logic_data
+  end subroutine get_bool_array
+
+  !> Get a real value of a given name
+  subroutine get_real(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    real(dp), intent(out)        :: res
+    integer                      :: ix
+    call prepare_get_var(cfg, var_name, CFG_real_type, 1, ix)
+    res = cfg%vars(ix)%real_data(1)
+  end subroutine get_real
+
+  !> Get a integer value of a given name
+  subroutine get_int(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(inout)       :: res
+    integer                      :: ix
+    call prepare_get_var(cfg, var_name, CFG_integer_type, 1, ix)
+    res = cfg%vars(ix)%int_data(1)
+  end subroutine get_int
+
+  !> Get a logical value of a given name
+  subroutine get_bool(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    logical, intent(out)         :: res
+    integer                      :: ix
+    call prepare_get_var(cfg, var_name, CFG_bool_type, 1, ix)
+    res = cfg%vars(ix)%logic_data(1)
+  end subroutine get_bool
+
+  !> Get a character value of a given name
+  subroutine get_string(cfg, var_name, res)
+    type(CFG_t), intent(in)       :: cfg
+    character(len=*), intent(in)  :: var_name
+    character(len=*), intent(out) :: res
+    integer                       :: ix
+    call prepare_get_var(cfg, var_name, CFG_string_type, 1, ix)
+    res = cfg%vars(ix)%char_data(1)
+  end subroutine get_string
+
+  !> Get the size of a variable
+  subroutine CFG_get_size(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(out)         :: res
+    integer                      :: ix
+
+    call get_var_index(cfg, var_name, ix)
+    if (ix /= -1) then
+       res = cfg%vars(ix)%var_size
+    else
+       res = -1
+       call handle_error("CFG_get_size: variable ["//var_name//"] not found")
+    end if
+  end subroutine CFG_get_size
+
+  !> Get the type of a given variable of a configuration type
+  subroutine CFG_get_type(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    integer, intent(out)         :: res
+    integer                      :: ix
+
+    call get_var_index(cfg, var_name, ix)
+
+    if (ix /= -1) then
+       res = cfg%vars(ix)%var_type
+    else
+       res = -1
+       call handle_error("get_type: variable ["//var_name//"] not found")
+    end if
+  end subroutine CFG_get_type
+
+  !> This routine writes the current configuration to a file with descriptions
+  subroutine CFG_write(cfg, filename)
+    use iso_fortran_env
+    type(CFG_t), intent(in)       :: cfg
+    character(len=*), intent(in)  :: filename
+    integer                       :: i, j, io_state, myUnit
+    character(len=CFG_name_len)   :: name_format
+    character(len=CFG_string_len) :: err_string
+
+    write(name_format, FMT="(A,I0,A)") "(A,A", CFG_name_len, ",A)"
+
+    if (filename == "stdout") then
+       myUnit = output_unit
+    else
+       myUnit = 333
+       open(myUnit, FILE=filename, ACTION="WRITE", ERR=999, IOSTAT=io_state)
+    end if
+
+    write(myUnit, ERR=999, FMT="(A)") " ##############################################"
+    write(myUnit, ERR=999, FMT="(A)") " ###          Configuration file            ###"
+    write(myUnit, ERR=999, FMT="(A)") " ##############################################"
+    write(myUnit, ERR=999, FMT="(A)") ""
+
+    do i = 1, cfg%num_vars
+       write(myUnit, ERR=998, FMT="(A,A,A)") " # ", &
+            trim(cfg%vars(i)%description), ":"
+       write(myUnit, ADVANCE="NO", ERR=998, FMT="(A)") &
+            " " // trim(cfg%vars(i)%var_name) // " = "
+
+       select case(cfg%vars(i)%var_type)
+       case (CFG_integer_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(I0, A)") &
+                  cfg%vars(i)%int_data(j), " "
+          end do
+       case (CFG_real_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(E10.4, A)") &
+                  cfg%vars(i)%real_data(j), " "
+          end do
+       case (CFG_string_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A, A)") &
+                  trim(cfg%vars(i)%char_data(j)), " "
+          end do
+       case (CFG_bool_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(L1, A)") &
+                  cfg%vars(i)%logic_data(j), " "
+          end do
+       end select
+       write(myUnit, ERR=998, FMT="(A)") ""
+       write(myUnit, ERR=998, FMT="(A)") ""
+    end do
+
+    if (myUnit /= output_unit) close(myUnit, ERR=999, IOSTAT=io_state)
+    return
+
+998 continue
+    write(err_string, *) "CFG_write error: io_state = ", io_state, &
+         " while writing ", trim(cfg%vars(i)%var_name), " to ", filename
+    call handle_error(err_string)
+
+999 continue ! If there was an error, the routine will end here
+    write(err_string, *) "CFG_write error: io_state = ", io_state, &
+         " while writing to ", filename
+    call handle_error(err_string)
+
+  end subroutine CFG_write
+
+  !> Routine to ensure that enough storage is allocated for the configuration
+  !> type. If not the new size will be twice as much as the current size. If no
+  !> storage is allocated yet a minumum amount of starage is allocated.
+  subroutine ensure_free_storage(cfg)
+    type(CFG_t), intent(inout) :: cfg
+    integer, parameter         :: min_dyn_size = 100
+    integer                    :: cur_size, new_size
+    type(CFG_var_t), allocatable :: cfg_copy(:)
+
+    if (allocated(cfg%vars)) then
+       cur_size = size(cfg%vars)
+
+       if (cur_size - cfg%num_vars < 1) then
+          new_size = 2 * cur_size
+          allocate(cfg_copy(cur_size))
+          cfg_copy = cfg%vars
+          deallocate(cfg%vars)
+          allocate(cfg%vars(new_size))
+          cfg%vars(1:cur_size) = cfg_copy
+       end if
+    else
+       allocate(cfg%vars(min_dyn_size))
+    end if
+
+  end subroutine ensure_free_storage
+
+  !> Routine to find the indices of entries in a string
+  subroutine get_fields_string(line, delims, n_max, n_found, ixs_start, ixs_end)
+    !> The line from which we want to read
+    character(len=*), intent(in)  :: line
+    !> A string with delimiters. For example delims = " ,'"""//char(9)
+    character(len=*), intent(in)  :: delims
+    !> Maximum number of entries to read in
+    integer, intent(in)           :: n_max
+    !> Number of entries found
+    integer, intent(inout)        :: n_found
+    !> On return, ix_start(i) holds the starting point of entry i
+    integer, intent(inout)        :: ixs_start(n_max)
+    !> On return, ix_end(i) holds the end point of entry i
+    integer, intent(inout)        :: ixs_end(n_max)
+
+    integer                       :: ix, ix_prev
+
+    ix_prev = 0
+    n_found = 0
+
+    do while (n_found < n_max)
+
+       ! Find the starting point of the next entry (a non-delimiter value)
+       ix = verify(line(ix_prev+1:), delims)
+       if (ix == 0) exit
+
+       n_found            = n_found + 1
+       ixs_start(n_found) = ix_prev + ix ! This is the absolute position in 'line'
+
+       ! Get the end point of the current entry (next delimiter index minus one)
+       ix = scan(line(ixs_start(n_found)+1:), delims) - 1
+
+       if (ix == -1) then              ! If there is no last delimiter,
+          ixs_end(n_found) = len(line) ! the end of the line is the endpoint
+       else
+          ixs_end(n_found) = ixs_start(n_found) + ix
+       end if
+
+       ix_prev = ixs_end(n_found) ! We continue to search from here
+    end do
+
+  end subroutine get_fields_string
+
+  !> Sort the variables for faster lookup
+  subroutine CFG_sort(cfg)
+    type(CFG_t), intent(inout) :: cfg
+    call qsort_config(cfg%vars(1:cfg%num_vars))
+    cfg%sorted = .true.
+  end subroutine CFG_sort
+
+  !> Simple implementation of quicksort algorithm to sort the variable list alphabetically.
+  recursive subroutine qsort_config(list)
+    type(CFG_var_t), intent(inout) :: list(:)
+    integer                        :: split_pos
+
+    if (size(list) > 1) then
+       call parition_var_list(list, split_pos)
+       call qsort_config( list(:split_pos-1) )
+       call qsort_config( list(split_pos:) )
+    end if
+  end subroutine qsort_config
+
+  !> Helper routine for quicksort, to perform partitioning
+  subroutine parition_var_list(list, marker)
+    type(CFG_var_t), intent(inout) :: list(:)
+    integer, intent(out)           :: marker
+    integer                        :: left, right, pivot_ix
+    type(CFG_var_t)                :: temp
+    character(len=CFG_name_len)    :: pivot_value
+
+    left        = 0
+    right       = size(list) + 1
+
+    ! Take the middle element as pivot
+    pivot_ix    = size(list) / 2
+    pivot_value = list(pivot_ix)%var_name
+
+    do while (left < right)
+
+       right = right - 1
+       do while (lgt(list(right)%var_name, pivot_value))
+          right = right - 1
+       end do
+
+       left = left + 1
+       do while (lgt(pivot_value, list(left)%var_name))
+          left = left + 1
+       end do
+
+       if (left < right) then
+          temp = list(left)
+          list(left) = list(right)
+          list(right) = temp
+       end if
+    end do
+
+    if (left == right) then
+       marker = left + 1
+    else
+       marker = left
+    end if
+  end subroutine parition_var_list
+
+end module m_config
