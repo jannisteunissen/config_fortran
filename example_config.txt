@@ -1,0 +1,17 @@
+ # Example of a filename:
+ filename = this/is/another/filename 
+
+ # First name of the author of this code:
+ first_name = Jannis
+
+ # Full name of the author:
+ full_name = Jannis Teunissen
+
+ # Whether I have a lot of work to do:
+ lots_of_work = F
+
+ # Age of the author of this code:
+ my_age = 28
+
+ # My favorite numbers:
+ my_fav_reals = 1.0 2.0 3.0 4.0 5.0

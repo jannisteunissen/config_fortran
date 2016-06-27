@@ -37,12 +37,12 @@ program test_m_config
   ! Write to stdout (only when given the filename "stdout")
   call CFG_write(my_cfg, "stdout")
 
-  print *, "Reading in test_m_config_input.txt"
-  call CFG_read_file(my_cfg, "test_m_config_input.txt") ! Update values with file
+  print *, "Reading in example_config.txt"
+  call CFG_read_file(my_cfg, "example_config.txt") ! Update values with file
 
   print *, "Updated values:"
   call CFG_write(my_cfg, "stdout")                      ! Write to stdout
-  call CFG_write(my_cfg, "test_m_config_output.txt")    ! Write to file
+  call CFG_write(my_cfg, "example_config_out.txt")    ! Write to file
 
   print *, "The code below demonstrates how to get values:"
   print *, ""
