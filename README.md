@@ -57,3 +57,4 @@ If you are using `C` or `C++`, you can for example use
 
 * [libconfig](http://www.hyperrealm.com/libconfig/)
 * [config4*](http://www.config4star.org/)
+* [KRACKEN](http://www.urbanjost.altervista.org/LIBRARY/libCLI/arguments/src2015/krackenhelp.html) (To parse command line arguments)
