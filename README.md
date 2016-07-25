@@ -57,3 +57,4 @@ A modern Fortran compiler that supports Fortran 2008. The included `Makefile` wa
 * [libconfig](http://www.hyperrealm.com/libconfig/) (C/C++)
 * [config4*](http://www.config4star.org/) (C/C++)
 * [KRACKEN](http://www.urbanjost.altervista.org/LIBRARY/libCLI/arguments/src2015/krackenhelp.html) (Fortran argument parser)
+* [FLAP](https://github.com/szaghi/FLAP) (Fortran 2003+ argument parser)
