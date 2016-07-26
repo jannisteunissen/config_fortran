@@ -48,8 +48,6 @@ A modern Fortran compiler that supports Fortran 2008. The included `Makefile` wa
 
 ## TODO
 
-* Allow `#` to appear in strings.
-* Prevent user from creating same variable twice
 * Write tests
 
 ## Alternatives
