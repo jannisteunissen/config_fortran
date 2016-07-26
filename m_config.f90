@@ -273,28 +273,28 @@ contains
        write(myUnit, ERR=998, FMT="(A,A,A)") " # ", &
             trim(cfg%vars(i)%description), ":"
        write(myUnit, ADVANCE="NO", ERR=998, FMT="(A)") &
-            " " // trim(cfg%vars(i)%var_name) // " = "
+            " " // trim(cfg%vars(i)%var_name) // " ="
 
        select case(cfg%vars(i)%var_type)
        case (CFG_integer_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(I0, A)") &
-                  cfg%vars(i)%int_data(j), " "
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,I0)") &
+                  " ", cfg%vars(i)%int_data(j)
           end do
        case (CFG_real_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(E10.4, A)") &
-                  cfg%vars(i)%real_data(j), " "
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E10.4)") &
+                  " ", cfg%vars(i)%real_data(j)
           end do
        case (CFG_string_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A, A)") &
-                  trim(cfg%vars(i)%char_data(j)), " "
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A)") &
+                  " '" // trim(cfg%vars(i)%char_data(j)) // "'"
           end do
        case (CFG_logic_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(L1, A)") &
-                  cfg%vars(i)%logic_data(j), " "
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,L1)") &
+                  " ", cfg%vars(i)%logic_data(j)
           end do
        end select
        write(myUnit, ERR=998, FMT="(A)") ""
