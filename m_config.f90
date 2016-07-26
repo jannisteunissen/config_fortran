@@ -273,11 +273,19 @@ contains
     character(len=*), intent(in)  :: var_name, description
     integer, intent(in)           :: var_type, var_size
     logical, intent(in), optional :: dynamic_size
-    integer                       :: num_vars
+    integer                       :: ix, num_vars
+
+    ! Check if variable already exists
+    call get_var_index(cfg, var_name, ix)
+
+    if (ix /= -1) then
+       call handle_error("CFG_add: variable [" // trim(var_name) // &
+            "] already exists")
+    end if
 
     call ensure_free_storage(cfg)
 
-    cfg%sorted                   = .false.
+    cfg%sorted                     = .false.
     num_vars                       = cfg%num_vars + 1
     cfg%num_vars                   = num_vars
     cfg%vars(num_vars)%var_name    = var_name
