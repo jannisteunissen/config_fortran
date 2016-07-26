@@ -1,11 +1,12 @@
  # Example of a filename:
- filename = this/is/another/filename 
+ filename = this/is/another/filename
 
  # First name of the author of this code:
  first_name = Jannis
 
  # Full name of the author:
- full_name = Jannis Teunissen
+ # (Note that the # can appear inside a quoted string)
+ full_name = Jannis "#yolo"
 
  # Whether I have a lot of work to do:
  lots_of_work = F
