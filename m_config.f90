@@ -5,7 +5,7 @@ module m_config
   private
 
   !> The double precision kind-parameter
-  integer, parameter :: dp             = kind(0.0d0)
+  integer, parameter :: dp               = kind(0.0d0)
 
   integer, parameter :: CFG_num_types    = 4 !< Number of variable types
   integer, parameter :: CFG_integer_type = 1 !< Integer type
@@ -217,31 +217,26 @@ contains
     character                       :: current_char, need_char
     integer                         :: n
 
-    ! Strip comments starting with a #-sign, but only outside quoted strings
-    ! (so that var = '#yolo' is valid)
+    ! Strip comments, but only outside quoted strings (so that var = '#yolo' is
+    ! valid when # is a comment char)
     need_char = ""
 
     do n = 1, len(line)
        current_char = line(n:n)
 
-       ! Skip while inside a string
-       if (need_char /= "") then
-          if (current_char == need_char) then
-             ! The string is closed
-             need_char = ""
+       if (need_char == "") then
+          if (current_char == "'") then
+             need_char = "'"    ! Open string
+          else if (current_char == '"') then
+             need_char = '"'    ! Open string
+          else if (index(current_char, comment_chars) /= 0) then
+             line = line(1:n-1) ! Trim line up to comment character
+             exit
           end if
-          cycle
+       else if (current_char == need_char) then
+          need_char = ""        ! Close string
        end if
 
-       ! Outside a string
-       if (current_char == "'") then
-          need_char = "'"
-       else if (current_char == '"') then
-          need_char = '"'
-       else if (index(current_char, comment_chars) /= 0) then
-          line = line(1:n-1)
-          exit
-       end if
     end do
 
   end subroutine trim_comment
@@ -465,8 +460,7 @@ contains
     cfg%vars(cfg%num_vars)%char_data(1) = char_data
   end subroutine add_string
 
-  !> Add a configuration variable with an array of type
-  !  character
+  !> Add a configuration variable with an array of type character
   subroutine add_string_array(cfg, var_name, char_data, &
        comment, dynamic_size)
     type(CFG_t), intent(inout)    :: cfg
@@ -486,8 +480,7 @@ contains
     cfg%vars(cfg%num_vars)%logic_data(1) = logic_data
   end subroutine add_logical
 
-  !> Add a configuration variable with an array of type
-  !  logical
+  !> Add a configuration variable with an array of type logical
   subroutine add_logical_array(cfg, var_name, logic_data, &
        comment, dynamic_size)
     type(CFG_t), intent(inout)    :: cfg
@@ -612,7 +605,7 @@ contains
        res = cfg%vars(ix)%var_type
     else
        res = -1
-       call handle_error("get_type: variable ["//var_name//"] not found")
+       call handle_error("CFG_get_type: variable ["//var_name//"] not found")
     end if
   end subroutine CFG_get_type
 
