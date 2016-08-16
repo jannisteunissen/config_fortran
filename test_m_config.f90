@@ -1,17 +1,16 @@
 program test_m_config
   use m_config
 
-  integer, parameter :: dp = kind(0.0d0)
-
-  ! The configuration object
-  type(CFG_t) :: my_cfg
+  integer, parameter    :: dp = kind(0.0d0)
+  type(CFG_t)           :: my_cfg
 
   ! Some dummy variables
   real(dp), allocatable :: my_reals(:)
-  logical  :: my_logic
-  integer  :: my_int
-  integer  :: n_reals
-  integer  :: variable_type
+  logical               :: my_logic
+  integer               :: my_int
+  integer               :: n_reals
+  integer               :: variable_type
+  character(len=20)     :: fmt_string
 
   print *, "Testing m_config.f90 implementation"
 
@@ -40,28 +39,31 @@ program test_m_config
   print *, "Reading in example_config.txt"
   call CFG_read_file(my_cfg, "example_config.txt") ! Update values with file
 
-  print *, "Updated values:"
-  call CFG_write(my_cfg, "stdout")                      ! Write to stdout
-  call CFG_write(my_cfg, "example_config_out.txt")    ! Write to file
+  print *, "Updated values: "
+  call CFG_write(my_cfg, "stdout")                 ! Write to stdout
+  call CFG_write(my_cfg, "example_config_out.txt") ! Write to file
 
-  print *, "The code below demonstrates how to get values:"
+  print *, "The code below demonstrates how to get values: "
   print *, ""
 
   call CFG_get(my_cfg, "lots_of_work", my_logic)
-  print *, "lots_of_work:", my_logic
+  write(*, "(A25,L10)") "Lots of work: ", my_logic
 
   call CFG_get(my_cfg, "my_age", my_int)
-  print *, "my_age:", my_int
+  write(*, "(A25,I10)") "My age: ", my_int
 
   call CFG_get_size(my_cfg, "my_fav_reals", n_reals)
-  print *, "Array size of favourite numbers:", n_reals
+  write(*, "(A25,I10)") "# favourite numbers: ", n_reals
+
+  ! Generate format string
+  write(fmt_string, "(A,I0,A)") "(A25,", n_reals, "E10.2)"
 
   allocate(my_reals(n_reals))
   call CFG_get(my_cfg, "my_fav_reals", my_reals)
-  print *, "my favourite numbers:", my_reals
+  write(*, fmt_string) "Favourite numbers: ", my_reals
   deallocate(my_reals)
 
   call CFG_get_type(my_cfg, "full_name", variable_type)
-  print *, "type of full name:", variable_type
+  write(*, "(A25,A10)") "Type of full name: ", CFG_type_names(variable_type)
 
 end program test_m_config
