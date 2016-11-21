@@ -1,4 +1,4 @@
-# fortran_config
+# config_fortran
 
 A configuration file parser for Fortran. The intended usage is as follows:
 
