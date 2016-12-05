@@ -94,6 +94,7 @@ module m_config
   public :: CFG_get_type
   public :: CFG_sort
   public :: CFG_write
+  public :: CFG_write_markdown
   public :: CFG_read_file
   public :: CFG_update_from_arguments
 
@@ -377,6 +378,88 @@ contains
     call handle_error(err_string)
 
   end subroutine CFG_write
+
+  !> This routine writes the current configuration to a markdown file
+  subroutine CFG_write_markdown(cfg, filename)
+    use iso_fortran_env
+    type(CFG_t), intent(in)       :: cfg
+    character(len=*), intent(in)  :: filename
+    integer                       :: i, j, io_state, myUnit
+    character(len=CFG_name_len)   :: name_format, var_name
+    character(len=CFG_name_len)   :: category, prev_category
+    character(len=CFG_string_len) :: err_string
+
+    write(name_format, FMT="(A,I0,A)") "(A,A", CFG_name_len, ",A)"
+
+    if (filename == "stdout") then
+       myUnit = output_unit
+    else
+       myUnit = 333
+       open(myUnit, FILE=filename, ACTION="WRITE", ERR=999, IOSTAT=io_state)
+    end if
+
+    category      = ""
+    prev_category = "X"
+    write(myUnit, ERR=998, FMT="(A)") "# Configuration file (markdown format)"
+    write(myUnit, ERR=998, FMT="(A)") ""
+
+    do i = 1, cfg%num_vars
+
+       ! Write category when it changes
+       call split_category(cfg%vars(i), category, var_name)
+
+       if (category /= prev_category) then
+          if (category == "") category = "No category"
+          write(myUnit, ERR=998, FMT="(A)") '## ' // trim(category)
+          write(myUnit, ERR=998, FMT="(A)") ""
+          prev_category = category
+       end if
+
+       write(myUnit, ERR=998, FMT="(A)") "* " // trim(cfg%vars(i)%description)
+       write(myUnit, ERR=998, FMT="(A)") ""
+       write(myUnit, ADVANCE="NO", ERR=998, FMT="(A)") &
+            '        ' // trim(var_name) // " ="
+
+       select case(cfg%vars(i)%var_type)
+       case (CFG_integer_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,I0)") &
+                  " ", cfg%vars(i)%int_data(j)
+          end do
+       case (CFG_real_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E10.4)") &
+                  " ", cfg%vars(i)%real_data(j)
+          end do
+       case (CFG_string_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A)") &
+                  " '" // trim(cfg%vars(i)%char_data(j)) // "'"
+          end do
+       case (CFG_logic_type)
+          do j = 1, cfg%vars(i)%var_size
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,L1)") &
+                  " ", cfg%vars(i)%logic_data(j)
+          end do
+       end select
+       write(myUnit, ERR=998, FMT="(A)") ""
+       write(myUnit, ERR=998, FMT="(A)") ""
+    end do
+
+    if (myUnit /= output_unit) close(myUnit, ERR=999, IOSTAT=io_state)
+    return
+
+998 continue
+    write(err_string, *) "CFG_write_markdown error: io_state = ", io_state, &
+         " while writing ", trim(var_name), " to ", filename
+    call handle_error(err_string)
+
+999 continue ! If there was an error, the routine will end here
+    write(err_string, *) "CFG_write_markdown error: io_state = ", io_state, &
+         " while writing to ", filename
+    call handle_error(err_string)
+
+  end subroutine CFG_write_markdown
 
   subroutine split_category(variable, category, var_name)
     type(CFG_var_t), intent(in)          :: variable

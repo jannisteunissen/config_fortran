@@ -53,6 +53,7 @@ program test_m_config
   print *, ""
   call CFG_write(my_cfg, "stdout")                 ! Write to stdout
   call CFG_write(my_cfg, "example_config_out.cfg") ! Write to file
+  call CFG_write_markdown(my_cfg, "example_config_out.md") ! Write markdown file
 
   print *, "The code below demonstrates how to get values: "
   print *, ""
