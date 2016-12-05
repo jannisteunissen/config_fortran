@@ -92,8 +92,33 @@ module m_config
   public :: CFG_sort
   public :: CFG_write
   public :: CFG_read_file
+  public :: CFG_update_from_arguments
 
 contains
+  
+  subroutine CFG_update_from_arguments(cfg)
+    
+    type(CFG_t),intent(inout)      :: cfg
+    
+    character(LEN=100)             :: tmp_name, sim_name, cfg_name
+    character(LEN=100)             :: prev_name
+    
+    integer                        :: ix
+    
+    sim_name = "sim"
+    prev_name = ""
+    do ix = 1, command_argument_count()
+       call get_command_argument(ix, cfg_name)
+       call CFG_read_file(cfg, trim(cfg_name))
+
+       call CFG_get(cfg, "sim_name", tmp_name)
+       if (tmp_name /= "" .and. tmp_name /= prev_name) &
+            sim_name = trim(sim_name) // "_" // trim(tmp_name)
+       prev_name = tmp_name
+    end do
+    
+    call CFG_write(cfg, trim(sim_name) // "_config.txt")
+  end subroutine CFG_update_from_arguments
 
   !> This routine will be called if an error occurs in one of the subroutines of
   !> this module.

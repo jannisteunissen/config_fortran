@@ -1,0 +1,4 @@
+.DS_Store
+*.mod
+*.o
+test_m_config
