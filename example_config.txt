@@ -1,18 +1,20 @@
- # Example of a filename:
- filename = this/is/another/filename
+# Example of a filename:
+filename = this/is/another/filename
 
- # First name of the author of this code:
- first_name = Jannis
+[author_name]
+     # First name of the author of this code:
+     first = Jannis
 
- # Full name of the author:
- # (Note that the # can appear inside a quoted string)
- full_name = Jannis "#yolo"
+     # Full name of the author:
+     # (Note that the # can appear inside a quoted string)
+     full = Jannis "#yolo"
 
- # Whether I have a lot of work to do:
- lots_of_work = F
+[author]
+    # Age of the author of this code:
+    age = 29
 
- # Age of the author of this code:
- my_age = 28
+    # Whether I have a lot of work to do:
+    lots_of_work = F
 
- # My favorite numbers:
- my_fav_reals = 1.0 2.0 3.0 4.0 5.0
+    # My favorite numbers:
+    fav_reals = 1.0 2.0
