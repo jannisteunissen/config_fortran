@@ -52,9 +52,14 @@ An example of a configuration file is shown below
 
     happy = .true.
 
+    weather%temperature = 23.9
+
 Note that `temperature` and `humidity` are indented, and that `happy` is not,
 which means that `happy` is not part of weather (it is in the default unnamed
-category). To place variables in a category, you add them like Fortran types:
+category). Any space or tab counts as indentation. Outside an indented
+`[weather]` group, you can directly refer to its members by using e.g.
+`weather%temperature`, as is done on the last line. To place variables in a
+category, you add them like this:
 
     call CFG_add(my_cfg, "weather%temperature", 25.0_dp, "The temperature")
 
