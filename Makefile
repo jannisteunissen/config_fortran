@@ -5,10 +5,14 @@ OBJS	:= m_config.o
 
 .PHONY:	all test clean
 
-all: 	test_m_config
+all: 	libconfig_fortran.a test_m_config
+
+libconfig_fortran.a: $(OBJS)
+	$(RM) $@
+	$(AR) rcs $@ $^
 
 clean:
-	$(RM) test_m_config m_config.o m_config.mod
+	$(RM) test_m_config m_config.o m_config.mod libconfig_fortran.a
 
 # Dependency information
 test_m_config:	m_config.o
