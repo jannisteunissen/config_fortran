@@ -73,6 +73,19 @@ when creating a config variable:
 
     call CFG_add(my_cfg, "numbers", [1, 2], "Comment", dynamic_size=.true.)
 
+## Methods
+
+* `CFG_add`: Add a variable to the configuration
+* `CFG_get`: Get the value of a variable
+* `CFG_get_size`: Get the array size of a variable
+* `CFG_get_type`: Get the type of a variable
+* `CFG_sort`: Sort the configuration (for faster lookup when there are many variables)
+* `CFG_write`: Write the configuration to a standard text/config file, which can
+  be read in again
+* `CFG_write_markdown`: Write the configuration to a file in markdown format
+* `CFG_read_file`: Read in a configuration file
+* `CFG_update_from_arguments`: Read in the program's arguments as configuration files.
+
 ## Requirements
 
 A modern Fortran compiler that supports Fortran 2008. The included `Makefile` was written for `gfortran`.
