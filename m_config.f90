@@ -910,7 +910,7 @@ contains
     else
       write(error_unit, *) "Warning: ", var_name, & 
       " not present, added default: ", &
-      string_data, &
+      trim(string_data), &
       ", please see and or change in config file."
       call add_string(cfg, var_name, string_data, comment)
     end if
