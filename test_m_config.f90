@@ -80,18 +80,29 @@ program test_m_config
 
   call CFG_get_type(my_cfg, "author_name%full", variable_type)
   write(*, "(A25,A10)") "Type of full name: ", CFG_type_names(variable_type)
-  
+
   print *, ""
   print *, "The code below checks if a certain variable is present: "
   print *, "author_name%full is present?:", CFG_check_presence(my_cfg, "author_name%full")
   print *, "author%number is present?:", CFG_check_presence(my_cfg, "author%number")
   
+  call CFG_update_from_arguments(my_cfg)
   
   print *, ""
-  print *, "The code below checks CFG_get_or_add to author%number"
+  print *, "The code below checks CFG_get_or_add to author%number (which is not already present)"
   my_int = 12345
   call CFG_get_or_add(my_cfg,"author%number", my_int,"A number")
   call CFG_get(my_cfg, "author%number", my_int)
   write(*, "(A25,I10)") "author%number: ", my_int
 
+  print *, ""
+  print *, "The code below checks CFG_get_or_add to author%fav_reals (which is already present)"
+  allocate(my_reals(3))
+  my_reals = [1.0d0,2.0d0,3.0d0]
+  call CFG_get_or_add(my_cfg,"author%fav_reals", my_reals,"My favorite numbers",.true.)
+  call CFG_get(my_cfg, "author%fav_reals", my_reals)
+  write(*, *) "Favourite numbers: ", my_reals
+  
+  call CFG_write(my_cfg, "example_config_out2.cfg") ! Write to file
+  
 end program test_m_config
