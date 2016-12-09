@@ -63,7 +63,7 @@ module m_config
      module procedure :: add_real, add_real_array
      module procedure :: add_int, add_int_array
      module procedure :: add_string, add_string_array
-     module procedure :: add_logical, add_logical_array
+     module procedure :: add_logic, add_logic_array
   end interface CFG_add
 
   !> Interface to get variables from the configuration
@@ -660,16 +660,16 @@ contains
   end subroutine add_string_array
 
   !> Add a configuration variable with an logical value
-  subroutine add_logical(cfg, var_name, logic_data, comment)
+  subroutine add_logic(cfg, var_name, logic_data, comment)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name, comment
     logical, intent(in)          :: logic_data
     call prepare_store_var(cfg, var_name, CFG_logic_type, 1, comment)
     cfg%vars(cfg%num_vars)%logic_data(1) = logic_data
-  end subroutine add_logical
+  end subroutine add_logic
 
   !> Add a configuration variable with an array of type logical
-  subroutine add_logical_array(cfg, var_name, logic_data, &
+  subroutine add_logic_array(cfg, var_name, logic_data, &
        comment, dynamic_size)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, comment
@@ -678,7 +678,7 @@ contains
     call prepare_store_var(cfg, var_name, CFG_logic_type, &
          size(logic_data), comment, dynamic_size)
     cfg%vars(cfg%num_vars)%logic_data = logic_data
-  end subroutine add_logical_array
+  end subroutine add_logic_array
 
   !> Get a real array of a given name
   subroutine get_real_array(cfg, var_name, real_data)
@@ -819,7 +819,7 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_logic_array(cfg, var_name, logic_data)
     else
-      call add_logical_array(cfg, var_name, logic_data, &
+      call add_logic_array(cfg, var_name, logic_data, &
               comment, dynamic_size)
     end if
   end subroutine get_or_add_logic_array
@@ -859,7 +859,7 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_logic(cfg, var_name, logical_data)
     else
-      call add_logical(cfg, var_name, logical_data, comment)
+      call add_logic(cfg, var_name, logical_data, comment)
     end if
   end subroutine get_or_add_logic
 
