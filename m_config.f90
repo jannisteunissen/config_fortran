@@ -812,13 +812,16 @@ contains
     character(len=*), intent(in)    :: var_name, comment
     character(len=*), intent(inout) :: char_data(:)
     logical, intent(in), optional :: dynamic_size
+    integer :: i
     if (CFG_check_presence(cfg,var_name)) then
       call get_string_array(cfg, var_name, char_data)
     else
+      do i=1,size(char_data)
       write(error_unit, *) "Warning: ", var_name, & 
       " not present, added default: ", &
-      char_data, &
+      trim(char_data(i)), &
       ", please see and or change in config file."
+      end do
       call add_string_array(cfg, var_name, char_data, &
               comment, dynamic_size)
     end if
