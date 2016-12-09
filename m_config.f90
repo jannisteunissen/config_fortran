@@ -90,6 +90,7 @@ module m_config
   ! Public methods
   public :: CFG_add
   public :: CFG_get
+  public :: CFG_check_presence
   public :: CFG_get_size
   public :: CFG_get_type
   public :: CFG_sort
@@ -759,6 +760,21 @@ contains
        call handle_error("CFG_get_size: variable ["//var_name//"] not found")
     end if
   end subroutine CFG_get_size
+  
+  !> Get the size of a variable
+  subroutine CFG_check_presence(cfg, var_name, res)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: var_name
+    logical, intent(out)         :: res
+    integer                      :: ix
+
+    call get_var_index(cfg, var_name, ix)
+    if (ix /= -1) then
+       res = .true.
+    else
+       res = .false.
+    end if
+  end subroutine CFG_check_presence
 
   !> Get the type of a given variable of a configuration type
   subroutine CFG_get_type(cfg, var_name, res)

@@ -11,6 +11,7 @@ program test_m_config
   integer               :: n_reals
   integer               :: variable_type
   character(len=20)     :: fmt_string
+  logical               :: check
 
   print *, "Testing m_config.f90 implementation"
 
@@ -45,8 +46,11 @@ program test_m_config
 
   ! Write to stdout (only when given the filename "stdout")
   call CFG_write(my_cfg, "stdout")
+  print *, "printed also to: example_config.cfg"
+  call CFG_write(my_cfg, "example_config.cfg")
+  print *, ""
 
-  print *, "** Reading in example_config.text **"
+  print *, "** Reading in example_config.cfg **"
   call CFG_read_file(my_cfg, "example_config.cfg") ! Update values with file
 
   print *, "** Updated values: **"
@@ -77,5 +81,12 @@ program test_m_config
 
   call CFG_get_type(my_cfg, "author_name%full", variable_type)
   write(*, "(A25,A10)") "Type of full name: ", CFG_type_names(variable_type)
+  
+  print *, ""
+  print *, "The code below checks if a certain variable is present: "
+  call CFG_check_presence(my_cfg, "author_name%full", check)
+  print *, "author_name%full is present?:", check
+  call CFG_check_presence(my_cfg, "author%number", check)
+  print *, "author%number is present?:", check
 
 end program test_m_config
