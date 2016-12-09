@@ -89,7 +89,8 @@ program test_m_config
   
   print *, ""
   print *, "The code below checks CFG_get_or_add to author%number"
-  call CFG_get_or_add(my_cfg,"author%number",12345,"A number")
+  my_int = 12345
+  call CFG_get_or_add(my_cfg,"author%number", my_int,"A number")
   call CFG_get(my_cfg, "author%number", my_int)
   write(*, "(A25,I10)") "author%number: ", my_int
 
