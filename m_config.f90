@@ -295,14 +295,19 @@ contains
   end subroutine trim_comment
 
   !> This routine writes the current configuration to a file with descriptions
-  subroutine CFG_write(cfg, filename)
+  subroutine CFG_write(cfg_in, filename)
     use iso_fortran_env
-    type(CFG_t), intent(in)       :: cfg
+    type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
+    type(CFG_t)                   :: cfg
     integer                       :: i, j, io_state, myUnit
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
+
+    ! Always print a sorted configuration
+    cfg = cfg_in
+    if (.not. cfg%sorted) call CFG_sort(cfg)
 
     write(name_format, FMT="(A,I0,A)") "(A,A", CFG_name_len, ",A)"
 
@@ -381,14 +386,19 @@ contains
   end subroutine CFG_write
 
   !> This routine writes the current configuration to a markdown file
-  subroutine CFG_write_markdown(cfg, filename)
+  subroutine CFG_write_markdown(cfg_in, filename)
     use iso_fortran_env
-    type(CFG_t), intent(in)       :: cfg
+    type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
     integer                       :: i, j, io_state, myUnit
+    type(CFG_t)                   :: cfg
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
+
+    ! Always print a sorted configuration
+    cfg = cfg_in
+    if (.not. cfg%sorted) call CFG_sort(cfg)
 
     write(name_format, FMT="(A,I0,A)") "(A,A", CFG_name_len, ",A)"
 
