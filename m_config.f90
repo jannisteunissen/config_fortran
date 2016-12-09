@@ -73,6 +73,14 @@ module m_config
      module procedure :: get_logic, get_logic_array
      module procedure :: get_string, get_string_array
   end interface CFG_get
+  
+  !> Interface to get variables from the configuration
+  interface CFG_get_or_add
+     module procedure :: get_or_add_real, get_or_add_real_array
+     module procedure :: get_or_add_int, get_or_add_int_array
+     module procedure :: get_or_add_logic, get_or_add_logic_array
+     module procedure :: get_or_add_string, get_or_add_string_array
+  end interface CFG_get_or_add
 
   ! Public types
   public :: CFG_t
@@ -90,6 +98,7 @@ module m_config
   ! Public methods
   public :: CFG_add
   public :: CFG_get
+  public :: CFG_get_or_add
   public :: CFG_check_presence
   public :: CFG_get_size
   public :: CFG_get_type
@@ -754,6 +763,118 @@ contains
     call prepare_get_var(cfg, var_name, CFG_string_type, 1, ix)
     res = cfg%vars(ix)%char_data(1)
   end subroutine get_string
+  
+  !> Get or add a real array of a given name
+  subroutine get_or_add_real_array(cfg, var_name, real_data, &
+    comment, dynamic_size)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    real(dp), intent(inout)      :: real_data(:)
+    logical, intent(in), optional :: dynamic_size
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_real_array(cfg, var_name, real_data)
+    else
+      call add_real_array(cfg, var_name, real_data, &
+              comment, dynamic_size)
+    end if
+  end subroutine get_or_add_real_array
+
+  !> Get or add a integer array of a given name
+  subroutine get_or_add_int_array(cfg, var_name, int_data, &
+    comment, dynamic_size)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    integer, intent(inout)       :: int_data(:)
+    logical, intent(in), optional :: dynamic_size
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_int_array(cfg, var_name, int_data)
+    else
+      call add_int_array(cfg, var_name, int_data, &
+              comment, dynamic_size)
+    end if
+  end subroutine get_or_add_int_array
+
+  !> Get or add a character array of a given name
+  subroutine get_or_add_string_array(cfg, var_name, char_data, &
+    comment, dynamic_size)
+    type(CFG_t), intent(inout)      :: cfg
+    character(len=*), intent(in)    :: var_name, comment
+    character(len=*), intent(inout) :: char_data(:)
+    logical, intent(in), optional :: dynamic_size
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_string_array(cfg, var_name, char_data)
+    else
+      call add_string_array(cfg, var_name, char_data, &
+              comment, dynamic_size)
+    end if
+  end subroutine get_or_add_string_array
+
+  !> Get or add a logical array of a given name
+  subroutine get_or_add_logic_array(cfg, var_name, logic_data, &
+    comment, dynamic_size)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    logical, intent(inout)       :: logic_data(:)
+    logical, intent(in), optional :: dynamic_size
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_logic_array(cfg, var_name, logic_data)
+    else
+      call add_logical_array(cfg, var_name, logic_data, &
+              comment, dynamic_size)
+    end if
+  end subroutine get_or_add_logic_array
+
+  !> Get or add a real value of a given name
+  subroutine get_or_add_real(cfg, var_name, real_data, &
+    comment)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    real(dp), intent(inout)      :: real_data
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_real(cfg, var_name, real_data)
+    else
+      call add_real(cfg, var_name, real_data, comment)
+    end if
+  end subroutine get_or_add_real
+
+  !> Get or add a integer value of a given name
+  subroutine get_or_add_int(cfg, var_name, int_data, &
+    comment)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    integer, intent(inout)       :: int_data
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_int(cfg, var_name, int_data)
+    else
+      call add_int(cfg, var_name, int_data, comment)
+    end if
+  end subroutine get_or_add_int
+
+  !> Get or add a logical value of a given name
+  subroutine get_or_add_logic(cfg, var_name, logical_data, &
+    comment)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: var_name, comment
+    logical, intent(inout)       :: logical_data
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_logic(cfg, var_name, logical_data)
+    else
+      call add_logical(cfg, var_name, logical_data, comment)
+    end if
+  end subroutine get_or_add_logic
+
+  !> Get a character value of a given name
+  subroutine get_or_add_string(cfg, var_name, string_data, &
+    comment)
+    type(CFG_t), intent(inout)       :: cfg
+    character(len=*), intent(in)     :: var_name, comment
+    character(len=*), intent(inout)  :: string_data
+    if (CFG_check_presence(cfg,var_name)) then
+      call get_string(cfg, var_name, string_data)
+    else
+      call add_string(cfg, var_name, string_data, comment)
+    end if
+  end subroutine get_or_add_string
 
   !> Get the size of a variable
   subroutine CFG_get_size(cfg, var_name, res)
@@ -771,7 +892,7 @@ contains
     end if
   end subroutine CFG_get_size
   
-  !> Get the size of a variable
+  !> Logical check if variable is present in config file
   logical function CFG_check_presence(cfg, var_name) result(res)
     type(CFG_t), intent(in)      :: cfg
     character(len=*), intent(in) :: var_name
@@ -784,7 +905,7 @@ contains
        res = .false.
     end if
   end function CFG_check_presence
-
+  
   !> Get the type of a given variable of a configuration type
   subroutine CFG_get_type(cfg, var_name, res)
     type(CFG_t), intent(in)      :: cfg

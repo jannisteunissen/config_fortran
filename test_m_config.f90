@@ -85,5 +85,12 @@ program test_m_config
   print *, "The code below checks if a certain variable is present: "
   print *, "author_name%full is present?:", CFG_check_presence(my_cfg, "author_name%full")
   print *, "author%number is present?:", CFG_check_presence(my_cfg, "author%number")
+  
+  
+  print *, ""
+  print *, "The code below checks CFG_get_or_add to author%number"
+  call CFG_get_or_add(my_cfg,"author%number",12345,"A number")
+  call CFG_get(my_cfg, "author%number", my_int)
+  write(*, "(A25,I10)") "author%number: ", my_int
 
 end program test_m_config
