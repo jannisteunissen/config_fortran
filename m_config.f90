@@ -772,10 +772,9 @@ contains
   end subroutine CFG_get_size
   
   !> Get the size of a variable
-  subroutine CFG_check_presence(cfg, var_name, res)
+  logical function CFG_check_presence(cfg, var_name) result(res)
     type(CFG_t), intent(in)      :: cfg
     character(len=*), intent(in) :: var_name
-    logical, intent(out)         :: res
     integer                      :: ix
 
     call get_var_index(cfg, var_name, ix)
@@ -784,7 +783,7 @@ contains
     else
        res = .false.
     end if
-  end subroutine CFG_check_presence
+  end function CFG_check_presence
 
   !> Get the type of a given variable of a configuration type
   subroutine CFG_get_type(cfg, var_name, res)

@@ -11,7 +11,6 @@ program test_m_config
   integer               :: n_reals
   integer               :: variable_type
   character(len=20)     :: fmt_string
-  logical               :: check
 
   print *, "Testing m_config.f90 implementation"
 
@@ -84,9 +83,7 @@ program test_m_config
   
   print *, ""
   print *, "The code below checks if a certain variable is present: "
-  call CFG_check_presence(my_cfg, "author_name%full", check)
-  print *, "author_name%full is present?:", check
-  call CFG_check_presence(my_cfg, "author%number", check)
-  print *, "author%number is present?:", check
+  print *, "author_name%full is present?:", CFG_check_presence(my_cfg, "author_name%full")
+  print *, "author%number is present?:", CFG_check_presence(my_cfg, "author%number")
 
 end program test_m_config
