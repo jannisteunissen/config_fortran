@@ -75,12 +75,12 @@ module m_config
   end interface CFG_get
   
   !> Interface to get variables from the configuration
-  interface CFG_get_or_add
-     module procedure :: get_or_add_real, get_or_add_real_array
-     module procedure :: get_or_add_int, get_or_add_int_array
-     module procedure :: get_or_add_logic, get_or_add_logic_array
-     module procedure :: get_or_add_string, get_or_add_string_array
-  end interface CFG_get_or_add
+  interface CFG_add_up
+     module procedure :: add_up_real, add_up_real_array
+     module procedure :: add_up_int, add_up_int_array
+     module procedure :: add_up_logic, add_up_logic_array
+     module procedure :: add_up_string, add_up_string_array
+  end interface CFG_add_up
 
   ! Public types
   public :: CFG_t
@@ -98,7 +98,7 @@ module m_config
   ! Public methods
   public :: CFG_add
   public :: CFG_get
-  public :: CFG_get_or_add
+  public :: CFG_add_up
   public :: CFG_check_presence
   public :: CFG_get_size
   public :: CFG_get_type
@@ -110,14 +110,15 @@ module m_config
 
 contains
 
-  subroutine CFG_update_from_arguments(cfg)
+  subroutine CFG_update_from_arguments(cfg, new_var_err)
     type(CFG_t),intent(inout)      :: cfg
+    logical, intent(in), optional  :: new_var_err
     character(len=100)             :: cfg_name
     integer                        :: ix
 
     do ix = 1, command_argument_count()
        call get_command_argument(ix, cfg_name)
-       call CFG_read_file(cfg, trim(cfg_name))
+       call CFG_read_file(cfg, trim(cfg_name),new_var_err)
     end do
   end subroutine CFG_update_from_arguments
 
@@ -156,9 +157,10 @@ contains
   end subroutine get_var_index
 
   !> Update the variables in the configartion with the values found in 'filename'
-  subroutine CFG_read_file(cfg, filename)
+  subroutine CFG_read_file(cfg, filename,new_var_err)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: filename
+    logical, intent(in), optional :: new_var_err
 
     integer, parameter            :: my_unit = 123
     integer                       :: io_state, equal_sign_ix
@@ -228,7 +230,8 @@ contains
        ! Find variable corresponding to name in file
        call get_var_index(cfg, var_name, ix)
 
-       if (ix <= 0) then
+       if (ix <= 0 ) then
+          if (new_var_err) cycle
           call handle_error("CFG_read_file: variable [" // trim(var_name) // &
                "] in [" //  filename // "] is not known")
        end if
@@ -765,7 +768,7 @@ contains
   end subroutine get_string
   
   !> Get or add a real array of a given name
-  subroutine get_or_add_real_array(cfg, var_name, real_data, &
+  subroutine add_up_real_array(cfg, var_name, real_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -775,17 +778,15 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_real_array(cfg, var_name, real_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      real_data, &
-      ", please see and or change in config file."
       call add_real_array(cfg, var_name, real_data, &
               comment, dynamic_size)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_real_array
+    call get_real_array(cfg, var_name, real_data)
+  end subroutine add_up_real_array
 
   !> Get or add a integer array of a given name
-  subroutine get_or_add_int_array(cfg, var_name, int_data, &
+  subroutine add_up_int_array(cfg, var_name, int_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -795,40 +796,33 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_int_array(cfg, var_name, int_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      int_data, &
-      ", please see and or change in config file."
       call add_int_array(cfg, var_name, int_data, &
               comment, dynamic_size)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_int_array
+    call get_int_array(cfg, var_name, int_data)
+  end subroutine add_up_int_array
 
   !> Get or add a character array of a given name
-  subroutine get_or_add_string_array(cfg, var_name, char_data, &
+  subroutine add_up_string_array(cfg, var_name, char_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)      :: cfg
     character(len=*), intent(in)    :: var_name, comment
     character(len=*), intent(inout) :: char_data(:)
     logical, intent(in), optional :: dynamic_size
-    integer :: i
     if (CFG_check_presence(cfg,var_name)) then
       call get_string_array(cfg, var_name, char_data)
     else
-      do i=1,size(char_data)
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      trim(char_data(i)), &
-      ", please see and or change in config file."
-      end do
       call add_string_array(cfg, var_name, char_data, &
               comment, dynamic_size)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_string_array
+    call get_string_array(cfg, var_name, char_data)
+  end subroutine add_up_string_array
 
   !> Get or add a logical array of a given name
-  subroutine get_or_add_logic_array(cfg, var_name, logic_data, &
+  subroutine add_up_logic_array(cfg, var_name, logic_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -838,17 +832,15 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_logic_array(cfg, var_name, logic_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      logic_data, &
-      ", please see and or change in config file."
       call add_logic_array(cfg, var_name, logic_data, &
               comment, dynamic_size)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_logic_array
+    call get_logic_array(cfg, var_name, logic_data)
+  end subroutine add_up_logic_array
 
   !> Get or add a real value of a given name
-  subroutine get_or_add_real(cfg, var_name, real_data, &
+  subroutine add_up_real(cfg, var_name, real_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -857,16 +849,14 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_real(cfg, var_name, real_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      real_data, &
-      ", please see and or change in config file."
       call add_real(cfg, var_name, real_data, comment)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_real
+    call get_real(cfg, var_name, real_data)
+  end subroutine add_up_real
 
   !> Get or add a integer value of a given name
-  subroutine get_or_add_int(cfg, var_name, int_data, &
+  subroutine add_up_int(cfg, var_name, int_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -875,16 +865,14 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_int(cfg, var_name, int_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      int_data, &
-      ", please see and or change in config file."
       call add_int(cfg, var_name, int_data, comment)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_int
+    call get_int(cfg, var_name, int_data)
+  end subroutine add_up_int
 
   !> Get or add a logical value of a given name
-  subroutine get_or_add_logic(cfg, var_name, logical_data, &
+  subroutine add_up_logic(cfg, var_name, logical_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -893,16 +881,14 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_logic(cfg, var_name, logical_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      logical_data, &
-      ", please see and or change in config file."
       call add_logic(cfg, var_name, logical_data, comment)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_logic
+    call get_logic(cfg, var_name, logical_data)
+  end subroutine add_up_logic
 
   !> Get a character value of a given name
-  subroutine get_or_add_string(cfg, var_name, string_data, &
+  subroutine add_up_string(cfg, var_name, string_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)       :: cfg
@@ -911,13 +897,11 @@ contains
     if (CFG_check_presence(cfg,var_name)) then
       call get_string(cfg, var_name, string_data)
     else
-      write(error_unit, *) "Warning: ", var_name, & 
-      " not present, added default: ", &
-      trim(string_data), &
-      ", please see and or change in config file."
       call add_string(cfg, var_name, string_data, comment)
+      call CFG_update_from_arguments(cfg,.true.)
     end if
-  end subroutine get_or_add_string
+    call get_string(cfg, var_name, string_data)
+  end subroutine add_up_string
 
   !> Get the size of a variable
   subroutine CFG_get_size(cfg, var_name, res)

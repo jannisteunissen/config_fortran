@@ -5,7 +5,7 @@ OBJS	:= m_config.o
 
 .PHONY:	all test clean
 
-all: 	libconfig_fortran.a test_m_config
+all: 	libconfig_fortran.a test_m_config test_m_config2
 
 libconfig_fortran.a: $(OBJS)
 	$(RM) $@
@@ -16,6 +16,7 @@ clean:
 
 # Dependency information
 test_m_config:	m_config.o
+test_m_config2:	m_config.o
 
 # How to get .o object files from .f90 source files
 %.o: %.f90
