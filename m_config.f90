@@ -12,7 +12,7 @@ module m_config
   integer, parameter :: CFG_real_type    = 2 !< Real number type
   integer, parameter :: CFG_string_type  = 3 !< String type
   integer, parameter :: CFG_logic_type   = 4 !< Boolean/logical type
-  integer, parameter :: CFG_store_type   = 0 !< Used before a variable is created
+  integer, parameter :: CFG_unknown_type = 0 !< Used before a variable is created
 
   !> Names of the types
   character(len=10), parameter :: CFG_type_names(0:CFG_num_types) = &
@@ -233,7 +233,7 @@ contains
 
        if (ix <= 0) then
           ! Variable still needs to be created, for now store data as a string
-          call prepare_store_var(cfg, trim(var_name), CFG_store_type, 1, &
+          call prepare_store_var(cfg, trim(var_name), CFG_unknown_type, 1, &
                "Not yet created", ix, .false.)
           cfg%vars(ix)%stored_data = line
        else
@@ -321,7 +321,7 @@ contains
     character(len=CFG_string_len) :: err_string
 
     do n = 1, cfg%num_vars
-       if (cfg%vars(n)%var_type == CFG_store_type) then
+       if (cfg%vars(n)%var_type == CFG_unknown_type) then
           write(err_string, *) "CFG_check: unknown variable ", &
                trim(cfg%vars(n)%var_name), " in a config file"
           call handle_error(err_string)
@@ -571,7 +571,7 @@ contains
        cfg%vars(ix)%stored_data = ""
     else
        ! Only allowed when the variable is not yet created
-       if (cfg%vars(ix)%var_type /= CFG_store_type) then
+       if (cfg%vars(ix)%var_type /= CFG_unknown_type) then
           call handle_error("prepare_store_var: variable [" // &
                & trim(var_name) // "] already exists")
        end if
