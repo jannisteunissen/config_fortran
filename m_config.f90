@@ -75,12 +75,12 @@ module m_config
   end interface CFG_get
 
   !> Interface to get variables from the configuration
-  interface CFG_add_up
-     module procedure :: add_up_real, add_up_real_array
-     module procedure :: add_up_int, add_up_int_array
-     module procedure :: add_up_logic, add_up_logic_array
-     module procedure :: add_up_string, add_up_string_array
-  end interface CFG_add_up
+  interface CFG_add_get
+     module procedure :: add_get_real, add_get_real_array
+     module procedure :: add_get_int, add_get_int_array
+     module procedure :: add_get_logic, add_get_logic_array
+     module procedure :: add_get_string, add_get_string_array
+  end interface CFG_add_get
 
   ! Public types
   public :: CFG_t
@@ -98,7 +98,7 @@ module m_config
   ! Public methods
   public :: CFG_add
   public :: CFG_get
-  public :: CFG_add_up
+  public :: CFG_add_get
   public :: CFG_check_presence
   public :: CFG_get_size
   public :: CFG_get_type
@@ -768,7 +768,7 @@ contains
   end subroutine get_string
 
   !> Get or add a real array of a given name
-  subroutine add_up_real_array(cfg, var_name, real_data, &
+  subroutine add_get_real_array(cfg, var_name, real_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -783,10 +783,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_real_array(cfg, var_name, real_data)
-  end subroutine add_up_real_array
+  end subroutine add_get_real_array
 
   !> Get or add a integer array of a given name
-  subroutine add_up_int_array(cfg, var_name, int_data, &
+  subroutine add_get_int_array(cfg, var_name, int_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -801,10 +801,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_int_array(cfg, var_name, int_data)
-  end subroutine add_up_int_array
+  end subroutine add_get_int_array
 
   !> Get or add a character array of a given name
-  subroutine add_up_string_array(cfg, var_name, char_data, &
+  subroutine add_get_string_array(cfg, var_name, char_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)      :: cfg
@@ -819,10 +819,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_string_array(cfg, var_name, char_data)
-  end subroutine add_up_string_array
+  end subroutine add_get_string_array
 
   !> Get or add a logical array of a given name
-  subroutine add_up_logic_array(cfg, var_name, logic_data, &
+  subroutine add_get_logic_array(cfg, var_name, logic_data, &
     comment, dynamic_size)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -837,10 +837,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_logic_array(cfg, var_name, logic_data)
-  end subroutine add_up_logic_array
+  end subroutine add_get_logic_array
 
   !> Get or add a real value of a given name
-  subroutine add_up_real(cfg, var_name, real_data, &
+  subroutine add_get_real(cfg, var_name, real_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -853,10 +853,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_real(cfg, var_name, real_data)
-  end subroutine add_up_real
+  end subroutine add_get_real
 
   !> Get or add a integer value of a given name
-  subroutine add_up_int(cfg, var_name, int_data, &
+  subroutine add_get_int(cfg, var_name, int_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -869,10 +869,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_int(cfg, var_name, int_data)
-  end subroutine add_up_int
+  end subroutine add_get_int
 
   !> Get or add a logical value of a given name
-  subroutine add_up_logic(cfg, var_name, logical_data, &
+  subroutine add_get_logic(cfg, var_name, logical_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)   :: cfg
@@ -885,10 +885,10 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_logic(cfg, var_name, logical_data)
-  end subroutine add_up_logic
+  end subroutine add_get_logic
 
   !> Get a character value of a given name
-  subroutine add_up_string(cfg, var_name, string_data, &
+  subroutine add_get_string(cfg, var_name, string_data, &
     comment)
     use iso_fortran_env
     type(CFG_t), intent(inout)       :: cfg
@@ -901,7 +901,7 @@ contains
       call CFG_update_from_arguments(cfg,.true.)
     end if
     call get_string(cfg, var_name, string_data)
-  end subroutine add_up_string
+  end subroutine add_get_string
 
   !> Get the size of a variable
   subroutine CFG_get_size(cfg, var_name, res)

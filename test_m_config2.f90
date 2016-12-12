@@ -25,16 +25,16 @@ program test_m_config2
 
   print *, "Test of real"
   my_real = 1.0d0
-  call CFG_add_up(my_cfg,"scalar%real", my_real,"my_real")
+  call CFG_add_get(my_cfg,"scalar%real", my_real,"my_real")
   print *, "Test of logic"
   my_logic = .true.
-  call CFG_add_up(my_cfg,"scalar%logic", my_logic,"my_logic")
+  call CFG_add_get(my_cfg,"scalar%logic", my_logic,"my_logic")
   print *, "Test of integer"
   my_int = 5
-  call CFG_add_up(my_cfg,"scalar%int", my_int,"my_int")
+  call CFG_add_get(my_cfg,"scalar%int", my_int,"my_int")
   print *, "Test of string"
   my_string = "word"
-  call CFG_add_up(my_cfg,"scalar%char", my_string,"my_string")
+  call CFG_add_get(my_cfg,"scalar%char", my_string,"my_string")
 
   print *, ""
   print *, "output cfg to terminal and file example_config_out2.cfg"
@@ -48,16 +48,16 @@ program test_m_config2
 
   print *, "Test of real array"
   my_real_array = [1.0d0, 2.0d0, 3.0d0, 4.0d0]
-  call CFG_add_up(my_cfg,"array%real", my_real_array,"my_real_array")
+  call CFG_add_get(my_cfg,"array%real", my_real_array,"my_real_array")
   print *, "Test of logic array"
   my_logic_array = [.true., .true., .true., .true.]
-  call CFG_add_up(my_cfg,"array%logic", my_logic_array,"my_logic_array")
+  call CFG_add_get(my_cfg,"array%logic", my_logic_array,"my_logic_array")
   print *, "Test of integer array"
   my_int_array = [1,2,3,4]
-  call CFG_add_up(my_cfg,"array%int", my_int_array,"my_int_array")
+  call CFG_add_get(my_cfg,"array%int", my_int_array,"my_int_array")
   print *, "Test of string array"
   my_string_array = ["word A", "word B", "word C", "word D"]
-  call CFG_add_up(my_cfg,"array%char", my_string_array,"my_string_array")
+  call CFG_add_get(my_cfg,"array%char", my_string_array,"my_string_array")
 
   print *, ""
   print *, "output cfg to terminal and file example_config_out2.cfg"
