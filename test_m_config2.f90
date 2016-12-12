@@ -22,7 +22,7 @@ program test_m_config2
   call CFG_update_from_arguments(my_cfg,.true.)
   call CFG_write(my_cfg, "stdout")
   print *, ""
-  
+
   print *, "Test of real"
   my_real = 1.0d0
   call CFG_add_up(my_cfg,"scalar%real", my_real,"my_real")
@@ -35,7 +35,7 @@ program test_m_config2
   print *, "Test of string"
   my_string = "word"
   call CFG_add_up(my_cfg,"scalar%char", my_string,"my_string")
-  
+
   print *, ""
   print *, "output cfg to terminal and file example_config_out2.cfg"
   call CFG_write(my_cfg, "stdout")
@@ -45,7 +45,7 @@ program test_m_config2
   print *, "output cfg to terminal again"
   call CFG_write(my_cfg, "stdout")
   print *, ""
-  
+
   print *, "Test of real array"
   my_real_array = [1.0d0, 2.0d0, 3.0d0, 4.0d0]
   call CFG_add_up(my_cfg,"array%real", my_real_array,"my_real_array")
@@ -58,7 +58,7 @@ program test_m_config2
   print *, "Test of string array"
   my_string_array = ["word A", "word B", "word C", "word D"]
   call CFG_add_up(my_cfg,"array%char", my_string_array,"my_string_array")
-  
+
   print *, ""
   print *, "output cfg to terminal and file example_config_out2.cfg"
   call CFG_write(my_cfg, "stdout")
@@ -69,5 +69,5 @@ program test_m_config2
   call CFG_write(my_cfg, "stdout")
   print *, ""
 
-  
+
 end program test_m_config2

@@ -73,7 +73,7 @@ module m_config
      module procedure :: get_logic, get_logic_array
      module procedure :: get_string, get_string_array
   end interface CFG_get
-  
+
   !> Interface to get variables from the configuration
   interface CFG_add_up
      module procedure :: add_up_real, add_up_real_array
@@ -766,7 +766,7 @@ contains
     call prepare_get_var(cfg, var_name, CFG_string_type, 1, ix)
     res = cfg%vars(ix)%char_data(1)
   end subroutine get_string
-  
+
   !> Get or add a real array of a given name
   subroutine add_up_real_array(cfg, var_name, real_data, &
     comment, dynamic_size)
@@ -918,7 +918,7 @@ contains
        call handle_error("CFG_get_size: variable ["//var_name//"] not found")
     end if
   end subroutine CFG_get_size
-  
+
   !> Logical check if variable is present in config file
   logical function CFG_check_presence(cfg, var_name) result(res)
     type(CFG_t), intent(in)      :: cfg
@@ -932,7 +932,7 @@ contains
        res = .false.
     end if
   end function CFG_check_presence
-  
+
   !> Get the type of a given variable of a configuration type
   subroutine CFG_get_type(cfg, var_name, res)
     type(CFG_t), intent(in)      :: cfg
