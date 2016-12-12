@@ -8,8 +8,9 @@ A configuration file parser for Fortran. The intended usage is as follows:
    variables.
 3. You use the updated values in your program, so that there is no need to recompile.
 
-Variables can be of type integer, real, logical/bool, or string, and they can
-also be an array of such types.
+Steps 1 and 2 can also be reversed, so that you read in the configuration files
+before specifying the variables. Variables can be of type integer, real,
+logical/bool, or string, and they can also be an array of such types.
 
 ## Example
 
@@ -26,11 +27,17 @@ Here, the default grid size will be 1024. If the file `my_input_file.txt` contai
 
     grid_size = 512
 
-the actual grid size used in your program will be 512. See `test_m_config.f90`
-for an more extensive example of the usage. If you have a sufficiently recent `gfortran` compiler, you can run the test with
+the actual grid size used in your program will be 512. This can also be achieved by combining the `add` and the `get` like this:
 
-    $ make
-    $ ./test_m_config
+    integer     :: n_grid = 1024
+    type(CFG_t) :: my_cfg
+
+    call CFG_read_file(my_cfg, "my_input_file.txt")
+    call CFG_add_get(my_cfg, "grid_size", n_grid, "Size of the grid")
+
+When parsing the input file, the variable `n_grid` will be stored as plain text,
+since its type is not yet known. The call `CFG_add_get` converts it to the right
+type. See `example_1.f90` and `example_2.f90`for more usage examples.
 
 ## Configuration file syntax
 
@@ -77,6 +84,8 @@ when creating a config variable:
 
 * `CFG_add`: Add a variable to the configuration
 * `CFG_get`: Get the value of a variable
+* `CFG_add_get`: First `CFG_add`, then `CFG_get`
+* `CFG_check`: Check whether all variables have been defined
 * `CFG_get_size`: Get the array size of a variable
 * `CFG_get_type`: Get the type of a variable
 * `CFG_sort`: Sort the configuration (for faster lookup when there are many variables)

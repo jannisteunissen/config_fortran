@@ -12,7 +12,7 @@ program test_m_config
   integer               :: variable_type
   character(len=20)     :: fmt_string
 
-  print *, "Testing m_config.f90 implementation"
+  print *, "Testing m_config.f90 (test 1)"
 
   call CFG_add(my_cfg, "filename", "this/is/a/filename", &
        "A string containing a filename")
@@ -45,18 +45,16 @@ program test_m_config
 
   ! Write to stdout (only when given the filename "stdout")
   call CFG_write(my_cfg, "stdout")
-  print *, "printed also to: example_config.cfg"
-  call CFG_write(my_cfg, "example_config.cfg")
   print *, ""
 
-  print *, "** Reading in example_config.cfg **"
-  call CFG_read_file(my_cfg, "example_config.cfg") ! Update values with file
+  print *, "** Reading in example_1_input.cfg **"
+  call CFG_read_file(my_cfg, "example_1_input.cfg") ! Update values with file
 
   print *, "** Updated values: **"
   print *, ""
   call CFG_write(my_cfg, "stdout")                 ! Write to stdout
-  call CFG_write(my_cfg, "example_config_out.cfg") ! Write to file
-  call CFG_write_markdown(my_cfg, "example_config_out.md") ! Write markdown file
+  call CFG_write(my_cfg, "example_1_output.cfg") ! Write to file
+  call CFG_write_markdown(my_cfg, "example_1_output.md") ! Write markdown file
 
   print *, "The code below demonstrates how to get values: "
   print *, ""
@@ -80,5 +78,5 @@ program test_m_config
 
   call CFG_get_type(my_cfg, "author_name%full", variable_type)
   write(*, "(A25,A10)") "Type of full name: ", CFG_type_names(variable_type)
-  
+
 end program test_m_config
