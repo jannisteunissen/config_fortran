@@ -40,23 +40,27 @@ program test_m_config
   ! you have a sufficiently large number of them)
   call CFG_sort(my_cfg)
 
-  print *, "**Original values**"
+  print *, ""
+  print *, "----------------------------------------"
+  print *, "Original values:"
+  print *, "----------------------------------------"
   print *, ""
 
   ! Write to stdout (only when given the filename "stdout")
   call CFG_write(my_cfg, "stdout")
-  print *, ""
-
-  print *, "** Reading in example_1_input.cfg **"
+  print *, "----------------------------------------"
+  print *, "Reading in example_1_input.cfg"
   call CFG_read_file(my_cfg, "example_1_input.cfg") ! Update values with file
-
-  print *, "** Updated values: **"
+  print *, "Udated values:"
+  print *, "----------------------------------------"
   print *, ""
   call CFG_write(my_cfg, "stdout")                 ! Write to stdout
   call CFG_write(my_cfg, "example_1_output.cfg") ! Write to file
   call CFG_write_markdown(my_cfg, "example_1_output.md") ! Write markdown file
 
+  print *, "----------------------------------------"
   print *, "The code below demonstrates how to get values: "
+  print *, "----------------------------------------"
   print *, ""
 
   call CFG_get(my_cfg, "author%lots_of_work", my_logic)
@@ -78,5 +82,12 @@ program test_m_config
 
   call CFG_get_type(my_cfg, "author_name%full", variable_type)
   write(*, "(A25,A10)") "Type of full name: ", CFG_type_names(variable_type)
+
+  print *, ""
+  print *, "----------------------------------------"
+  print *, "Values that were used (through CFG_get):"
+  print *, "----------------------------------------"
+  print *, ""
+  call CFG_write(my_cfg, "stdout", hide_unused=.true.) ! Write to stdout
 
 end program test_m_config
