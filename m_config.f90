@@ -43,7 +43,8 @@ module m_config
      integer                       :: var_size
      !> Whether the variable size is flexible
      logical                       :: dynamic_size
-
+     !> Whether the variable's value has been requested
+     logical                       :: used
      !> Data that has been read in for this variable
      character(len=CFG_string_len) :: stored_data
 
@@ -330,17 +331,20 @@ contains
   end subroutine CFG_check
 
   !> This routine writes the current configuration to a file with descriptions
-  subroutine CFG_write(cfg_in, filename)
+  subroutine CFG_write(cfg_in, filename, hide_unused)
     use iso_fortran_env
     type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
+    logical, intent(in), optional :: hide_unused
+    logical                       :: hide_not_used
     type(CFG_t)                   :: cfg
     integer                       :: i, j, io_state, myUnit
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
 
-    call CFG_check(cfg_in)
+    hide_not_used = .false.
+    if (present(hide_unused)) hide_not_used = hide_unused
 
     ! Always print a sorted configuration
     cfg = cfg_in
@@ -359,6 +363,8 @@ contains
     prev_category = ""
 
     do i = 1, cfg%num_vars
+       if (.not. cfg%vars(i)%used .and. hide_not_used) cycle
+       if (cfg%vars(i)%var_type == CFG_unknown_type) cycle
 
        ! Write category when it changes
        call split_category(cfg%vars(i), category, var_name)
@@ -408,6 +414,7 @@ contains
     end do
 
     if (myUnit /= output_unit) close(myUnit, ERR=999, IOSTAT=io_state)
+    call CFG_check(cfg_in)
     return
 
 998 continue
@@ -423,17 +430,20 @@ contains
   end subroutine CFG_write
 
   !> This routine writes the current configuration to a markdown file
-  subroutine CFG_write_markdown(cfg_in, filename)
+  subroutine CFG_write_markdown(cfg_in, filename, hide_unused)
     use iso_fortran_env
     type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
+    logical, intent(in), optional :: hide_unused
+    logical                       :: hide_not_used
     integer                       :: i, j, io_state, myUnit
     type(CFG_t)                   :: cfg
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
 
-    call CFG_check(cfg_in)
+    hide_not_used = .false.
+    if (present(hide_unused)) hide_not_used = hide_unused
 
     ! Always print a sorted configuration
     cfg = cfg_in
@@ -454,6 +464,9 @@ contains
     write(myUnit, ERR=998, FMT="(A)") ""
 
     do i = 1, cfg%num_vars
+
+       if (.not. cfg%vars(i)%used .and. hide_not_used) cycle
+       if (cfg%vars(i)%var_type == CFG_unknown_type) cycle
 
        ! Write category when it changes
        call split_category(cfg%vars(i), category, var_name)
@@ -497,6 +510,7 @@ contains
     end do
 
     if (myUnit /= output_unit) close(myUnit, ERR=999, IOSTAT=io_state)
+    call CFG_check(cfg_in)
     return
 
 998 continue
@@ -568,6 +582,7 @@ contains
        cfg%sorted               = .false.
        ix                       = cfg%num_vars + 1
        cfg%num_vars             = cfg%num_vars + 1
+       cfg%vars(ix)%used        = .false.
        cfg%vars(ix)%stored_data = ""
     else
        ! Only allowed when the variable is not yet created
@@ -604,7 +619,7 @@ contains
   !> Helper routine to get variables. This is useful because a lot of the same
   !> code is executed for the different types of variables.
   subroutine prepare_get_var(cfg, var_name, var_type, var_size, ix)
-    type(CFG_t), intent(in)       :: cfg
+    type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name
     integer, intent(in)           :: var_type, var_size
     integer, intent(out)          :: ix
@@ -613,24 +628,20 @@ contains
     call get_var_index(cfg, var_name, ix)
 
     if (ix == -1) then
-
        call handle_error("CFG_get: variable ["//var_name//"] not found")
-
     else if (cfg%vars(ix)%var_type /= var_type) then
-
        write(err_string, fmt="(A)") "CFG_get: variable [" &
             // var_name // "] has different type (" // &
             trim(CFG_type_names(cfg%vars(ix)%var_type)) // &
             ") than requested (" // trim(CFG_type_names(var_type)) // ")"
        call handle_error(err_string)
-
     else if (cfg%vars(ix)%var_size /= var_size) then
-
        write(err_string, fmt="(A,I0,A,I0,A)") "CFG_get: variable [" &
             // var_name // "] has different size (", cfg%vars(ix)%var_size, &
             ") than requested (", var_size, ")"
        call handle_error(err_string)
-
+    else                        ! All good, variable will be used
+       cfg%vars(ix)%used = .true.
     end if
   end subroutine prepare_get_var
 
@@ -772,7 +783,7 @@ contains
 
   !> Get a real array of a given name
   subroutine get_real_array(cfg, var_name, real_data)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     real(dp), intent(inout)      :: real_data(:)
     integer                      :: ix
@@ -784,7 +795,7 @@ contains
 
   !> Get a integer array of a given name
   subroutine get_int_array(cfg, var_name, int_data)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     integer, intent(inout)       :: int_data(:)
     integer                      :: ix
@@ -796,7 +807,7 @@ contains
 
   !> Get a character array of a given name
   subroutine get_string_array(cfg, var_name, char_data)
-    type(CFG_t), intent(in)         :: cfg
+    type(CFG_t), intent(inout)      :: cfg
     character(len=*), intent(in)    :: var_name
     character(len=*), intent(inout) :: char_data(:)
     integer                         :: ix
@@ -808,7 +819,7 @@ contains
 
   !> Get a logical array of a given name
   subroutine get_logic_array(cfg, var_name, logic_data)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     logical, intent(inout)       :: logic_data(:)
     integer                      :: ix
@@ -820,7 +831,7 @@ contains
 
   !> Get a real value of a given name
   subroutine get_real(cfg, var_name, res)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     real(dp), intent(out)        :: res
     integer                      :: ix
@@ -831,7 +842,7 @@ contains
 
   !> Get a integer value of a given name
   subroutine get_int(cfg, var_name, res)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     integer, intent(inout)       :: res
     integer                      :: ix
@@ -842,7 +853,7 @@ contains
 
   !> Get a logical value of a given name
   subroutine get_logic(cfg, var_name, res)
-    type(CFG_t), intent(in)      :: cfg
+    type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name
     logical, intent(out)         :: res
     integer                      :: ix
@@ -853,7 +864,7 @@ contains
 
   !> Get a character value of a given name
   subroutine get_string(cfg, var_name, res)
-    type(CFG_t), intent(in)       :: cfg
+    type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name
     character(len=*), intent(out) :: res
     integer                       :: ix
@@ -1084,7 +1095,6 @@ contains
   subroutine CFG_sort(cfg)
     type(CFG_t), intent(inout) :: cfg
 
-    call CFG_check(cfg)
     call qsort_config(cfg%vars(1:cfg%num_vars))
     cfg%sorted = .true.
   end subroutine CFG_sort
