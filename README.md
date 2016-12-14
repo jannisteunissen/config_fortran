@@ -27,7 +27,8 @@ Here, the default grid size will be 1024. If the file `my_input_file.txt` contai
 
     grid_size = 512
 
-the actual grid size used in your program will be 512. This can also be achieved by combining the `add` and the `get` like this:
+the actual grid size used in your program will be 512. It is also possible to
+read the file first, and to combine the `add` and the `get`:
 
     integer     :: n_grid = 1024
     type(CFG_t) :: my_cfg
@@ -37,7 +38,15 @@ the actual grid size used in your program will be 512. This can also be achieved
 
 When parsing the input file, the variable `n_grid` will be stored as plain text,
 since its type is not yet known. The call `CFG_add_get` converts it to the right
-type. See `example_1.f90` and `example_2.f90`for more usage examples.
+type. The files `example_1.f90` and `example_2.f90` provide further usage
+examples.
+
+The current configuration can be stored in a file with `CFG_write`, which can
+then be used as input again. It is also possible to write markdown files with
+`CFG_write_markdown`. Writing to the special file name `"stdout"` causes the
+configuration to be printed to the screen. By specifying the optional argument
+`hide_unused=.true.`, only the variables whose value was used through a
+`CFG_get` (or `CFG_add_get`) are included.
 
 ## Configuration file syntax
 
@@ -85,12 +94,13 @@ when creating a config variable:
 * `CFG_add`: Add a variable to the configuration
 * `CFG_get`: Get the value of a variable
 * `CFG_add_get`: First `CFG_add`, then `CFG_get`
-* `CFG_check`: Check whether all variables have been defined
+* `CFG_check`: Check whether all variables read from files have been defined.
+  This is automatically performed on `CFG_write` and `CFG_write_markdown`.
 * `CFG_get_size`: Get the array size of a variable
 * `CFG_get_type`: Get the type of a variable
 * `CFG_sort`: Sort the configuration (for faster lookup when there are many variables)
 * `CFG_write`: Write the configuration to a standard text/config file, which can
-  be read in again
+  be read in again. By default, only the variables that were used are printed.
 * `CFG_write_markdown`: Write the configuration to a file in markdown format
 * `CFG_read_file`: Read in a configuration file
 * `CFG_update_from_arguments`: Read in the program's arguments as configuration files.
