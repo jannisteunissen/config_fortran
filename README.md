@@ -107,7 +107,9 @@ when creating a config variable:
 
 ## Requirements
 
-A modern Fortran compiler that supports Fortran 2008. The included `Makefile` was written for `gfortran`.
+A modern Fortran compiler that supports Fortran 2008. The included `Makefile`
+was written for `gfortran` (the default) and `ifort`, which you can enable by
+typing `make F90=ifort`.
 
 ## TODO
 
