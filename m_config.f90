@@ -395,7 +395,7 @@ contains
           end do
        case (CFG_real_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E10.4)") &
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E11.4)") &
                   " ", cfg%vars(i)%real_data(j)
           end do
        case (CFG_string_type)
@@ -491,7 +491,7 @@ contains
           end do
        case (CFG_real_type)
           do j = 1, cfg%vars(i)%var_size
-             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E10.4)") &
+             write(myUnit, ADVANCE="NO", ERR=998, FMT="(A,E11.4)") &
                   " ", cfg%vars(i)%real_data(j)
           end do
        case (CFG_string_type)
