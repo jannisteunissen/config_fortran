@@ -1,5 +1,11 @@
-FC 	:= gfortran
-FFLAGS	:= -O2 -g -std=f2008 -Wall -Wextra
+# Use gfortran unless already defined
+F90 ?= gfortran
+
+ifeq ($(F90), gfortran)
+	FFLAGS	?= -O2 -g -std=f2008 -Wall -Wextra
+else ifeq ($(F90), ifort)
+	FFLAGS	:= -O2 -stand f08 -warn all
+endif
 
 OBJS	:= m_config.o
 
@@ -20,8 +26,8 @@ example_2:	m_config.o
 
 # How to get .o object files from .f90 source files
 %.o: %.f90
-	$(FC) -c -o $@ $< $(FFLAGS)
+	$(F90) -c -o $@ $< $(FFLAGS)
 
 # How to get executables from .o object files
 %: %.o
-	$(FC) -o $@ $^ $(FFLAGS)
+	$(F90) -o $@ $^ $(FFLAGS)
