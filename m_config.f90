@@ -175,7 +175,7 @@ contains
     character(len=CFG_string_len) :: line
 
     open(my_unit, FILE=trim(filename), status = "OLD", &
-         action="READ", err=999, iostat=io_state)
+         action="READ", err=998, iostat=io_state)
     line_number = 0
 
     write(line_fmt, "(A,I0,A)") "(A", CFG_string_len, ")"
