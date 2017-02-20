@@ -111,10 +111,6 @@ A modern Fortran compiler that supports Fortran 2008. The included `Makefile`
 was written for `gfortran` (the default) and `ifort`, which you can enable by
 typing `make F90=ifort`.
 
-## TODO
-
-* Write tests
-
 ## Comparison to Fortran namelists
 
 Benefits of config_fortran:
@@ -140,3 +136,7 @@ Benefits of namelist format:
 * [KRACKEN](http://www.urbanjost.altervista.org/LIBRARY/libCLI/arguments/src2015/krackenhelp.html) (Fortran argument parser)
 * [FLAP](https://github.com/szaghi/FLAP) (Fortran 2003+ argument parser)
 * [FiNeR](https://github.com/szaghi/FiNeR) (Fortran 2003+ config file parser)
+
+## TODO
+
+* Write tests
