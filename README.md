@@ -115,6 +115,24 @@ typing `make F90=ifort`.
 
 * Write tests
 
+## Comparison to Fortran namelists
+
+Benefits of config_fortran:
+
+* You can read in (1D) arrays of unknown size
+* Settings have documentation, and you can write "documented" output in text or markdown format
+* If you don't want to use global variables, you have to open and read namelists in each module that requires parameters. I think it's nicer to read in a config_fortran type object once and pass that to the modules
+* You can spread out settings over multiple files, which is convenient for setting up parameter studies (this can be done with namelists, but it's not trivial)
+* Flexibility: although namelist implementations slightly differ, you cannot change them like you can config_fortran. Config_fortran for example allows to write only those settings that have been requested in a program.
+
+Benefits of namelist format:
+
+* More standard, although not completely the same for different vendors/versions yet
+* Support for array(3) = ... syntax
+* Support for array = 10*'dummy' syntax
+
+(*Of course, points 2 & 3 could easily be implemented in config_fortran*)
+
 ## Alternatives
 
 * [libconfig](http://www.hyperrealm.com/libconfig/) (C/C++)
