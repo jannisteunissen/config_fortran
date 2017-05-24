@@ -65,26 +65,26 @@ module m_config
 
   !> Interface to add variables to the configuration
   interface CFG_add
-     module procedure :: add_real, add_real_array
-     module procedure :: add_int, add_int_array
-     module procedure :: add_string, add_string_array
-     module procedure :: add_logic, add_logic_array
+     module procedure  add_real, add_real_array
+     module procedure  add_int, add_int_array
+     module procedure  add_string, add_string_array
+     module procedure  add_logic, add_logic_array
   end interface CFG_add
 
   !> Interface to get variables from the configuration
   interface CFG_get
-     module procedure :: get_real, get_real_array
-     module procedure :: get_int, get_int_array
-     module procedure :: get_logic, get_logic_array
-     module procedure :: get_string, get_string_array
+     module procedure  get_real, get_real_array
+     module procedure  get_int, get_int_array
+     module procedure  get_logic, get_logic_array
+     module procedure  get_string, get_string_array
   end interface CFG_get
 
   !> Interface to get variables from the configuration
   interface CFG_add_get
-     module procedure :: add_get_real, add_get_real_array
-     module procedure :: add_get_int, add_get_int_array
-     module procedure :: add_get_logic, add_get_logic_array
-     module procedure :: add_get_string, add_get_string_array
+     module procedure  add_get_real, add_get_real_array
+     module procedure  add_get_int, add_get_int_array
+     module procedure  add_get_logic, add_get_logic_array
+     module procedure  add_get_string, add_get_string_array
   end interface CFG_add_get
 
   ! Public types
