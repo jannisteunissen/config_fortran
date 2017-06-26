@@ -251,7 +251,11 @@ contains
           else
              cfg%vars(ix)%stored_data = line
           end if
-          call read_variable(cfg%vars(ix))
+          
+          ! If type is known, read in values
+          if (cfg%vars(ix)%var_type /= CFG_unknown_type) then
+             call read_variable(cfg%vars(ix))
+          end if
        end if
     end do
 
