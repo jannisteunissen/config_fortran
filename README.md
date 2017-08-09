@@ -18,7 +18,7 @@ Suppose you want to use a grid of size `n_grid`, then you could do:
 
     integer     :: n_grid
     type(CFG_t) :: my_cfg
-
+    
     call CFG_add(my_cfg, "grid_size", 1024, "Size of the grid")
     call CFG_read_file(my_cfg, "my_input_file.txt")
     call CFG_get(my_cfg, "grid_size", n_grid)
@@ -32,7 +32,7 @@ read the file first, and to combine the `add` and the `get`:
 
     integer     :: n_grid = 1024
     type(CFG_t) :: my_cfg
-
+    
     call CFG_read_file(my_cfg, "my_input_file.txt")
     call CFG_add_get(my_cfg, "grid_size", n_grid, "Size of the grid")
 
@@ -61,13 +61,13 @@ An example of a configuration file is shown below
 
     age = 29
     name = John
-
+    
     [weather]
         temperature = 25.2
         humidity = 23.5
-
+    
     happy = .true.
-
+    
     weather%temperature = 23.9
 
 Note that `temperature` and `humidity` are indented, and that `happy` is not,
@@ -104,6 +104,7 @@ when creating a config variable:
 * `CFG_write_markdown`: Write the configuration to a file in markdown format
 * `CFG_read_file`: Read in a configuration file
 * `CFG_update_from_arguments`: Read in the program's arguments as configuration files.
+* `CFG_clear`: Clear config for reuse
 
 ## Requirements
 
