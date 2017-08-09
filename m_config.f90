@@ -1178,13 +1178,15 @@ contains
        marker = left
     end if
   end subroutine parition_var_list
-  
+
+  !> Clear all data from a CFG_t object, so that it can be reused. Note that
+  !> this also happens automatically when such an object goes out of scope.
   subroutine CFG_clear(cfg)
       implicit none
-      type(CFG_t)     :: cfg
+      type(CFG_t) :: cfg
 
-      cfg%sorted =  .False.
-      cfg%num_vars =  0
+      cfg%sorted   = .false.
+      cfg%num_vars = 0
       if(allocated(cfg%vars)) then
           deallocate(cfg%vars)
       endif
