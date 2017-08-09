@@ -112,6 +112,7 @@ module m_config
   public :: CFG_write_markdown
   public :: CFG_read_file
   public :: CFG_update_from_arguments
+  public :: CFG_clear
 
 contains
 
@@ -1177,5 +1178,16 @@ contains
        marker = left
     end if
   end subroutine parition_var_list
+  
+  subroutine CFG_clear(cfg)
+      implicit none
+      type(CFG_t)     :: cfg
+
+      cfg%sorted =  .False.
+      cfg%num_vars =  0
+      if(allocated(cfg%vars)) then
+          deallocate(cfg%vars)
+      endif
+    end subroutine CFG_clear
 
 end module m_config
