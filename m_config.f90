@@ -218,8 +218,8 @@ contains
           var_name = line(1 : equal_sign_ix - 1) ! Set variable name
        end if
 
-       ! If there is no indent, reset to no category
-       if (var_name(1:1) /= " " .and. var_name(1:1) /= char(9)) then
+       ! If there are less than two spaces or a tab, reset to no category
+       if (var_name(1:2) /= " " .and. var_name(1:1) /= char(9)) then
           category = ""
        end if
 

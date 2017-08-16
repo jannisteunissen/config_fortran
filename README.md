@@ -72,7 +72,7 @@ An example of a configuration file is shown below
 
 Note that `temperature` and `humidity` are indented, and that `happy` is not,
 which means that `happy` is not part of weather (it is in the default unnamed
-category). Any space or tab counts as indentation. Outside an indented
+category). At least two spaces or a tab counts as indentation. Outside an indented
 `[weather]` group, you can directly refer to its members by using e.g.
 `weather%temperature`, as is done on the last line. To place variables in a
 category, you add them like this:
