@@ -234,6 +234,8 @@ contains
        line     = line(equal_sign_ix + 1:)    ! Set line to the values behind the '=' sign
        line     = adjustl(line)               ! Remove leading blanks
 
+       if (line == "") goto 998 ! Cannot assign empty value
+
        ! Find variable corresponding to name in file
        call get_var_index(cfg, var_name, ix)
 
