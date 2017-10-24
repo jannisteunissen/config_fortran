@@ -313,9 +313,13 @@ contains
        case (CFG_logic_type)
           read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%logic_data(n)
        end select
+
        if(stat /= 0) then
-          write (*,"(A,I3,A)") "Error ", stat, " when reading:"
-          write (*,*) var%stored_data(ix_start(n):ix_end(n)) 
+          write (*, *) "** m_config error **"
+          write (*, *) "reading variable: ", trim(var%var_name)
+          write (*, *) "variable type:    ", trim(CFG_type_names(var%var_type))
+          write (*, *) "parsing value:    ", var%stored_data(ix_start(n):ix_end(n))
+          write (*, "(A,I0)") " iostat value:     ", stat
           stop
        endif
     end do
