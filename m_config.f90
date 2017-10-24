@@ -274,7 +274,7 @@ contains
     type(CFG_var_t), intent(inout)            :: var
     integer                                   :: n, n_entries
     integer                                   :: ix_start(CFG_max_array_size)
-    integer                                   :: ix_end(CFG_max_array_size)
+    integer                                   :: ix_end(CFG_max_array_size), stat
 
     ! Get the start and end positions of the line content, and the number of entries
     call get_fields_string(var%stored_data, CFG_separators, &
@@ -302,16 +302,22 @@ contains
     end if
 
     do n = 1, n_entries
+       stat = 0
        select case (var%var_type)
        case (CFG_integer_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *) var%int_data(n)
+          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%int_data(n)
        case (CFG_real_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *) var%real_data(n)
+          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%real_data(n)
        case (CFG_string_type)
           var%char_data(n) = trim(var%stored_data(ix_start(n):ix_end(n)))
        case (CFG_logic_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *) var%logic_data(n)
+          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%logic_data(n)
        end select
+       if(stat /= 0) then
+          write (*,"(A,I3,A)") "Error ", stat, " when reading:"
+          write (*,*) var%stored_data(ix_start(n):ix_end(n)) 
+          stop
+       endif
     end do
   end subroutine read_variable
 
