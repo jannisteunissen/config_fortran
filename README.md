@@ -48,14 +48,35 @@ configuration to be printed to the screen. By specifying the optional argument
 `hide_unused=.true.`, only the variables whose value was used through a
 `CFG_get` (or `CFG_add_get`) are included.
 
+## Command line arguments
+
+A routine `CFG_update_from_arguments` is included, which parses command line arguments. Currently, two types of arguments are supported, as shown in the examples below.
+
+    # Read in two configuration files
+    ./my_program config_1.cfg config_2.cfg
+    
+    # Read in two variables
+    ./my_program -var_1=value -var_2=value
+    
+    # Read in an array of variables
+    ./my_program -var_2='value value'
+    
+    # Mix the above options
+    ./my_program config_1.cfg config_2.cfg -var_1=value -var_2=value
+    
+Note that variable specifications should be preceded by a dash (`-`).
+
 ## Configuration file syntax
 
-There are three types of lines:
+There are different types of lines:
 
 1. Blank lines, or lines only containing a comment (`# ...`), which are ignored.
 2. Lines indicating the start of a category: `[category_name]`
 3. Lines with an `=`-sign. If they are part of a user-defined category, they
    should start with an indent.
+4. Lines with a `+=` sign. For a scalar string variable, this will append to the
+   string. On an array, this will append an element to the array. On other types
+   of variables, this operation gives an error.
 
 An example of a configuration file is shown below
 

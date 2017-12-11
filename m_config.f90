@@ -116,14 +116,27 @@ module m_config
 
 contains
 
+  !> Read command line arguments. Both files and variables can be specified, for
+  !> example as: ./my_program config.cfg -n_runs=3
   subroutine CFG_update_from_arguments(cfg)
-    type(CFG_t),intent(inout)      :: cfg
-    character(len=100)             :: cfg_name
-    integer                        :: ix
+    type(CFG_t),intent(inout)     :: cfg
+    character(len=CFG_string_len) :: arg
+    integer                       :: ix
+    logical                       :: valid_syntax
 
     do ix = 1, command_argument_count()
-       call get_command_argument(ix, cfg_name)
-       call CFG_read_file(cfg, trim(cfg_name))
+       call get_command_argument(ix, arg)
+
+       if (arg(1:1) == '-') then
+          ! This sets a variable
+          call parse_line(cfg, arg(2:), valid_syntax)
+          if (.not. valid_syntax) then
+             call handle_error("Invalid variable specified on command line")
+          end if
+       else
+          ! This is a configuration files
+          call CFG_read_file(cfg, trim(arg))
+       end if
     end do
   end subroutine CFG_update_from_arguments
 
@@ -168,13 +181,13 @@ contains
     character(len=*), intent(in) :: filename
 
     integer, parameter            :: my_unit = 123
-    integer                       :: io_state, equal_sign_ix
-    integer                       :: ix, line_number
-    character(len=CFG_name_len)   :: var_name, category
+    integer                       :: io_state
+    integer                       :: line_number
+    logical :: valid_syntax
     character(len=CFG_name_len)   :: line_fmt
     character(len=CFG_string_len) :: err_string
     character(len=CFG_string_len) :: line
-    logical                       :: append
+    character(len=CFG_name_len)   :: category
 
     open(my_unit, file=trim(filename), status="old", action="read")
     write(line_fmt, "(A,I0,A)") "(A", CFG_string_len, ")"
@@ -186,76 +199,12 @@ contains
        read(my_unit, FMT=trim(line_fmt), ERR=998, end=999) line
        line_number = line_number + 1
 
-       call trim_comment(line, '#')
+       call parse_line(cfg, line, valid_syntax, category)
 
-       ! Skip empty lines
-       if (line == "") cycle
-
-       ! Locate the '=' sign
-       equal_sign_ix = scan(line, '=')
-
-       ! if there is no '='-sign then a category is indicated
-       if (equal_sign_ix == 0) then
-          line = adjustl(line)
-
-          ! The category name should appear like this: [category_name]
-          ix = scan(line, ']')
-          if (line(1:1) /= '[' .or. ix == 0) then
-             write(err_string, *) "Cannot read line ", line_number, &
-                  " from ", trim(filename)
-             call handle_error(err_string)
-          else
-             category = line(2:ix-1)
-             cycle
-          end if
-       end if
-
-       if (line(equal_sign_ix-1:equal_sign_ix) == '+=') then
-          append = .true.
-          var_name = line(1 : equal_sign_ix - 2) ! Set variable name
-       else
-          append = .false.
-          var_name = line(1 : equal_sign_ix - 1) ! Set variable name
-       end if
-
-       ! If there are less than two spaces or a tab, reset to no category
-       if (var_name(1:2) /= " " .and. var_name(1:1) /= char(9)) then
-          category = ""
-       end if
-
-       ! Remove leading blanks
-       var_name = adjustl(var_name)
-
-       ! Add category if it is defined
-       if (category /= "") then
-          var_name = trim(category) // CFG_category_separator // var_name
-       end if
-
-       line     = line(equal_sign_ix + 1:)    ! Set line to the values behind the '=' sign
-       line     = adjustl(line)               ! Remove leading blanks
-
-       if (line == "") goto 998 ! Cannot assign empty value
-
-       ! Find variable corresponding to name in file
-       call get_var_index(cfg, var_name, ix)
-
-       if (ix <= 0) then
-          ! Variable still needs to be created, for now store data as a string
-          call prepare_store_var(cfg, trim(var_name), CFG_unknown_type, 1, &
-               "Not yet created", ix, .false.)
-          cfg%vars(ix)%stored_data = line
-       else
-          if (append) then
-             cfg%vars(ix)%stored_data = &
-                  trim(cfg%vars(ix)%stored_data) // ', ' // trim(line)
-          else
-             cfg%vars(ix)%stored_data = line
-          end if
-
-          ! If type is known, read in values
-          if (cfg%vars(ix)%var_type /= CFG_unknown_type) then
-             call read_variable(cfg%vars(ix))
-          end if
+       if (.not. valid_syntax) then
+          write(err_string, *) "Cannot read line ", line_number, &
+               " from ", trim(filename)
+          call handle_error(err_string)
        end if
     end do
 
@@ -269,6 +218,101 @@ contains
 999 close(my_unit, iostat=io_state)
 
   end subroutine CFG_read_file
+
+  !> Update the cfg by parsing one line
+  subroutine parse_line(cfg, line_arg, valid_syntax, category_arg)
+    type(CFG_t), intent(inout)                           :: cfg
+    character(len=*), intent(in)                         :: line_arg
+    logical, intent(out)                                 :: valid_syntax
+    character(len=CFG_name_len), intent(inout), optional :: category_arg
+    character(len=CFG_name_len)                          :: var_name, category
+    integer                                              :: ix, equal_sign_ix
+    logical                                              :: append
+    character(len=CFG_string_len)                        :: line
+
+    valid_syntax = .true.
+
+    ! Work on a copy
+    line = line_arg
+    category = ""
+    if (present(category_arg)) category = category_arg
+
+    call trim_comment(line, '#')
+
+    ! Skip empty lines
+    if (line == "") return
+
+    ! Locate the '=' sign
+    equal_sign_ix = scan(line, '=')
+
+    ! if there is no '='-sign then a category is indicated
+    if (equal_sign_ix == 0) then
+       line = adjustl(line)
+
+       ! The category name should appear like this: [category_name]
+       ix = scan(line, ']')
+       if (line(1:1) /= '[' .or. ix == 0) then
+          valid_syntax = .false.
+          return
+       else
+          if (present(category_arg)) category_arg = line(2:ix-1)
+          return
+       end if
+    end if
+
+    if (line(equal_sign_ix-1:equal_sign_ix) == '+=') then
+       append = .true.
+       var_name = line(1 : equal_sign_ix - 2) ! Set variable name
+    else
+       append = .false.
+       var_name = line(1 : equal_sign_ix - 1) ! Set variable name
+    end if
+
+    ! If there are less than two spaces or a tab, reset to no category
+    if (var_name(1:2) /= " " .and. var_name(1:1) /= char(9)) then
+       category = ""
+    end if
+
+    ! Remove leading blanks
+    var_name = adjustl(var_name)
+
+    ! Add category if it is defined
+    if (category /= "") then
+       var_name = trim(category) // CFG_category_separator // var_name
+    end if
+
+    line     = line(equal_sign_ix + 1:)    ! Set line to the values behind the '=' sign
+    line     = adjustl(line)               ! Remove leading blanks
+
+    if (line == "") then
+       ! Cannot assign empty value
+       valid_syntax = .false.
+       return
+     end if
+
+    ! Find variable corresponding to name in file
+    call get_var_index(cfg, var_name, ix)
+
+    if (ix <= 0) then
+       ! Variable still needs to be created, for now store data as a string
+       call prepare_store_var(cfg, trim(var_name), CFG_unknown_type, 1, &
+            "Not yet created", ix, .false.)
+       cfg%vars(ix)%stored_data = line
+    else
+       if (append) then
+          cfg%vars(ix)%stored_data = &
+               trim(cfg%vars(ix)%stored_data) // ', ' // trim(line)
+       else
+          cfg%vars(ix)%stored_data = line
+       end if
+
+       ! If type is known, read in values
+       if (cfg%vars(ix)%var_type /= CFG_unknown_type) then
+          call read_variable(cfg%vars(ix))
+       end if
+    end if
+
+  end subroutine parse_line
 
   subroutine read_variable(var)
     type(CFG_var_t), intent(inout)            :: var
@@ -363,7 +407,7 @@ contains
     do n = 1, cfg%num_vars
        if (cfg%vars(n)%var_type == CFG_unknown_type) then
           write(err_string, *) "CFG_check: unknown variable ", &
-               trim(cfg%vars(n)%var_name), " in a config file"
+               trim(cfg%vars(n)%var_name), " specified"
           call handle_error(err_string)
        end if
     end do
