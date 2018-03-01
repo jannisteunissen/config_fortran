@@ -187,6 +187,7 @@ contains
        line_number = line_number + 1
 
        call trim_comment(line, '#')
+       call trim_comment(line, ';')
 
        ! Skip empty lines
        if (line == "") cycle
@@ -315,7 +316,7 @@ contains
        end select
        if(stat /= 0) then
           write (*,"(A,I3,A)") "Error ", stat, " when reading:"
-          write (*,*) var%stored_data(ix_start(n):ix_end(n)) 
+          write (*,*) var%stored_data(ix_start(n):ix_end(n))
           stop
        endif
     end do
