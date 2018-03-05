@@ -70,7 +70,7 @@ Note that variable specifications should be preceded by a dash (`-`).
 
 There are different types of lines:
 
-1. Blank lines, or lines only containing a comment (`# ...`), which are ignored.
+1. Blank lines, or lines only containing a comment (`# ...` or `; ...`), which are ignored.
 2. Lines indicating the start of a category: `[category_name]`
 3. Lines with an `=`-sign. If they are part of a user-defined category, they
    should start with an indent.
