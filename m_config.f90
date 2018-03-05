@@ -237,7 +237,7 @@ contains
     category = ""
     if (present(category_arg)) category = category_arg
 
-    call trim_comment(line, '#')
+    call trim_comment(line, '#;')
 
     ! Skip empty lines
     if (line == "") return
@@ -387,7 +387,7 @@ contains
              need_char = "'"    ! Open string
           else if (current_char == '"') then
              need_char = '"'    ! Open string
-          else if (index(current_char, comment_chars) /= 0) then
+         else if (index(comment_chars, current_char) /= 0) then
              line = line(1:n-1) ! Trim line up to comment character
              exit
           end if
