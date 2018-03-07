@@ -288,7 +288,7 @@ contains
        ! Cannot assign empty value
        valid_syntax = .false.
        return
-     end if
+    end if
 
     ! Find variable corresponding to name in file
     call get_var_index(cfg, var_name, ix)
@@ -387,7 +387,7 @@ contains
              need_char = "'"    ! Open string
           else if (current_char == '"') then
              need_char = '"'    ! Open string
-         else if (index(comment_chars, current_char) /= 0) then
+          else if (index(comment_chars, current_char) /= 0) then
              line = line(1:n-1) ! Trim line up to comment character
              exit
           end if
@@ -1238,14 +1238,14 @@ contains
   !> Clear all data from a CFG_t object, so that it can be reused. Note that
   !> this also happens automatically when such an object goes out of scope.
   subroutine CFG_clear(cfg)
-      implicit none
-      type(CFG_t) :: cfg
+    implicit none
+    type(CFG_t) :: cfg
 
-      cfg%sorted   = .false.
-      cfg%num_vars = 0
-      if(allocated(cfg%vars)) then
-          deallocate(cfg%vars)
-      endif
-    end subroutine CFG_clear
+    cfg%sorted   = .false.
+    cfg%num_vars = 0
+    if(allocated(cfg%vars)) then
+       deallocate(cfg%vars)
+    endif
+  end subroutine CFG_clear
 
 end module m_config
