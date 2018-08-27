@@ -22,7 +22,7 @@ module m_config
   integer, parameter :: CFG_string_len = 200 !< Fixed length of string type
 
   !> Maximum number of entries in a variable (if it's an array)
-  integer, parameter :: CFG_max_array_size = 20
+  integer, parameter :: CFG_max_array_size = 1000
 
   !> The separator(s) for array-like variables (space, comma, ', ", and tab)
   character(len=*), parameter :: CFG_separators = " ,'"""//char(9)
