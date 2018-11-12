@@ -30,6 +30,9 @@ module m_config
   !> The separator for categories (stored in var_name)
   character(len=*), parameter :: CFG_category_separator = "%"
 
+  !> The default string for data that is not yet stored
+  character(len=*), parameter :: unstored_data_string = "__UNSTORED_DATA_STRING"
+
   !> The type of a configuration variable
   type CFG_var_t
      private
@@ -283,12 +286,6 @@ contains
 
     line     = line(equal_sign_ix + 1:)    ! Set line to the values behind the '=' sign
     line     = adjustl(line)               ! Remove leading blanks
-
-    if (line == "") then
-       ! Cannot assign empty value
-       valid_syntax = .false.
-       return
-    end if
 
     ! Find variable corresponding to name in file
     call get_var_index(cfg, var_name, ix)
@@ -666,7 +663,7 @@ contains
        ix                       = cfg%num_vars + 1
        cfg%num_vars             = cfg%num_vars + 1
        cfg%vars(ix)%used        = .false.
-       cfg%vars(ix)%stored_data = ""
+       cfg%vars(ix)%stored_data = unstored_data_string
     else
        ! Only allowed when the variable is not yet created
        if (cfg%vars(ix)%var_type /= CFG_unknown_type) then
@@ -737,7 +734,7 @@ contains
 
     call prepare_store_var(cfg, var_name, CFG_real_type, 1, comment, ix)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%real_data(1) = real_data
@@ -756,7 +753,7 @@ contains
     call prepare_store_var(cfg, var_name, CFG_real_type, &
          size(real_data), comment, ix, dynamic_size)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%real_data = real_data
@@ -772,7 +769,7 @@ contains
 
     call prepare_store_var(cfg, var_name, CFG_integer_type, 1, comment, ix)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%int_data(1) = int_data
@@ -790,7 +787,7 @@ contains
     call prepare_store_var(cfg, var_name, CFG_integer_type, &
          size(int_data), comment, ix, dynamic_size)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%int_data = int_data
@@ -804,7 +801,7 @@ contains
     integer                      :: ix
 
     call prepare_store_var(cfg, var_name, CFG_string_type, 1, comment, ix)
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%char_data(1) = char_data
@@ -822,7 +819,7 @@ contains
     call prepare_store_var(cfg, var_name, CFG_string_type, &
          size(char_data), comment, ix, dynamic_size)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%char_data = char_data
@@ -838,7 +835,7 @@ contains
 
     call prepare_store_var(cfg, var_name, CFG_logic_type, 1, comment, ix)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%logic_data(1) = logic_data
@@ -857,7 +854,7 @@ contains
     call prepare_store_var(cfg, var_name, CFG_logic_type, &
          size(logic_data), comment, ix, dynamic_size)
 
-    if (cfg%vars(ix)%stored_data /= "") then
+    if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
        cfg%vars(ix)%logic_data = logic_data
