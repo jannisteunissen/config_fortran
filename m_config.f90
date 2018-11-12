@@ -284,8 +284,7 @@ contains
        var_name = trim(category) // CFG_category_separator // var_name
     end if
 
-    line     = line(equal_sign_ix + 1:)    ! Set line to the values behind the '=' sign
-    line     = adjustl(line)               ! Remove leading blanks
+    line = line(equal_sign_ix + 1:) ! Set line to the values behind the '=' sign
 
     ! Find variable corresponding to name in file
     call get_var_index(cfg, var_name, ix)
@@ -298,7 +297,7 @@ contains
     else
        if (append) then
           cfg%vars(ix)%stored_data = &
-               trim(cfg%vars(ix)%stored_data) // ', ' // trim(line)
+               trim(cfg%vars(ix)%stored_data) // trim(line)
        else
           cfg%vars(ix)%stored_data = line
        end if
@@ -326,12 +325,8 @@ contains
        if (.not. var%dynamic_size) then
           ! Allow strings of length 1 to be automatically concatenated
           if (var%var_type == CFG_string_type .and. var%var_size == 1) then
-             var%char_data(1) = trim(var%stored_data(ix_start(1):ix_end(1)))
-             do n = 2, n_entries
-                var%char_data(1) = trim(var%char_data(1)) // &
-                     trim(var%stored_data(ix_start(n):ix_end(n)))
-             end do
-             return                ! Leave routine
+             var%char_data(1) = trim(var%stored_data(ix_start(1):ix_end(n_entries)))
+             return ! Leave routine
           else
              call handle_error("read_variable: variable [" // &
                   & trim(var%var_name) // "] has the wrong size")
