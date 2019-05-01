@@ -14,6 +14,13 @@ module m_config
   integer, parameter :: CFG_logic_type   = 4 !< Boolean/logical type
   integer, parameter :: CFG_unknown_type = 0 !< Used before a variable is created
 
+  !> Indicates a variable has its default value
+  integer, parameter :: CFG_set_by_default      = 1
+  !> Indicates a variable was set by a command line argument
+  integer, parameter :: CFG_set_by_arg = 2
+  !> Indicates a variable was set by reading a file
+  integer, parameter :: CFG_set_by_file         = 3
+
   !> Names of the types
   character(len=10), parameter :: CFG_type_names(0:CFG_num_types) = &
        [character(len=10) :: "storage", "integer", "real", "string ", "logical"]
@@ -48,6 +55,8 @@ module m_config
      logical                       :: dynamic_size
      !> Whether the variable's value has been requested
      logical                       :: used
+     !> How the variable has been set (default, command line, file)
+     integer                       :: set_by = CFG_set_by_default
      !> Data that has been read in for this variable
      character(len=CFG_string_len) :: stored_data
 
@@ -144,7 +153,8 @@ contains
        ! Look for arguments starting with a single dash
        if (arg(1:1) == '-' .and. arg(2:2) /= '-') then
           ! This sets a variable
-          call parse_line(cfg, arg(2:), valid_syntax)
+          call parse_line(cfg, CFG_set_by_arg, arg(2:), valid_syntax)
+
           if (.not. valid_syntax) then
              call handle_error("Invalid variable specified on command line")
           end if
@@ -219,7 +229,7 @@ contains
        read(my_unit, FMT=trim(line_fmt), ERR=998, end=999) line
        line_number = line_number + 1
 
-       call parse_line(cfg, line, valid_syntax, category)
+       call parse_line(cfg, CFG_set_by_file, line, valid_syntax, category)
 
        if (.not. valid_syntax) then
           write(err_string, *) "Cannot read line ", line_number, &
@@ -240,11 +250,12 @@ contains
   end subroutine CFG_read_file
 
   !> Update the cfg by parsing one line
-  subroutine parse_line(cfg, line_arg, valid_syntax, category_arg)
+  subroutine parse_line(cfg, set_by, line_arg, valid_syntax, category_arg)
     type(CFG_t), intent(inout)                           :: cfg
-    character(len=*), intent(in)                         :: line_arg
+    integer, intent(in)                                  :: set_by !< Where the line came from
+    character(len=*), intent(in)                         :: line_arg !< Line to parse
     logical, intent(out)                                 :: valid_syntax
-    character(len=CFG_name_len), intent(inout), optional :: category_arg
+    character(len=CFG_name_len), intent(inout), optional :: category_arg !< The category
     character(len=CFG_name_len)                          :: var_name, category
     integer                                              :: ix, equal_sign_ix
     logical                                              :: append
@@ -324,6 +335,9 @@ contains
           call read_variable(cfg%vars(ix))
        end if
     end if
+
+    ! Store how the variable was set
+    cfg%vars(ix)%set_by = set_by
 
   end subroutine parse_line
 
@@ -423,20 +437,28 @@ contains
   end subroutine CFG_check
 
   !> This routine writes the current configuration to a file with descriptions
-  subroutine CFG_write(cfg_in, filename, hide_unused)
+  subroutine CFG_write(cfg_in, filename, hide_unused, custom_first)
     use iso_fortran_env
     type(CFG_t), intent(in)       :: cfg_in
     character(len=*), intent(in)  :: filename
+    !> Hide variables whose value was not requested
     logical, intent(in), optional :: hide_unused
-    logical                       :: hide_not_used
+    !> Show user-set variables first (default: false)
+    logical, intent(in), optional :: custom_first
+    logical                       :: hide_not_used, sort_set_by
     type(CFG_t)                   :: cfg
-    integer                       :: i, j, io_state, myUnit
+    integer                       :: i, j, n, io_state, myUnit
+    integer                       :: n_custom_set
+    integer, allocatable          :: cfg_order(:)
     character(len=CFG_name_len)   :: name_format, var_name
     character(len=CFG_name_len)   :: category, prev_category
     character(len=CFG_string_len) :: err_string
 
     hide_not_used = .false.
     if (present(hide_unused)) hide_not_used = hide_unused
+
+    sort_set_by = .false.
+    if (present(custom_first)) sort_set_by = custom_first
 
     ! Always print a sorted configuration
     cfg = cfg_in
@@ -447,16 +469,43 @@ contains
     if (filename == "stdout") then
        myUnit = output_unit
     else
-       myUnit = 333
-       open(myUnit, FILE=filename, ACTION="WRITE")
+       open(newunit=myUnit, FILE=filename, ACTION="WRITE")
     end if
 
     category      = ""
     prev_category = ""
 
-    do i = 1, cfg%num_vars
+    allocate(cfg_order(cfg%num_vars))
+    if (sort_set_by) then
+       n = 0
+       do i = 1, cfg%num_vars
+          if (cfg%vars(i)%set_by /= CFG_set_by_default) then
+             n = n + 1
+             cfg_order(n) = i
+          end if
+       end do
+       n_custom_set = n
+
+       do i = 1, cfg%num_vars
+          if (cfg%vars(i)%set_by == CFG_set_by_default) then
+             n = n + 1
+             cfg_order(n) = i
+          end if
+       end do
+    else
+       cfg_order(:) = [(i, i = 1, cfg%num_vars)]
+    end if
+
+    do n = 1, cfg%num_vars
+       i = cfg_order(n)
+
        if (.not. cfg%vars(i)%used .and. hide_not_used) cycle
        if (cfg%vars(i)%var_type == CFG_unknown_type) cycle
+
+       if (sort_set_by .and. n == n_custom_set + 1) then
+          write(myUnit, ERR=998, FMT="(A)") '# Variables below have default values'
+          write(myUnit, ERR=998, FMT="(A)") ''
+       end if
 
        ! Write category when it changes
        call split_category(cfg%vars(i), category, var_name)

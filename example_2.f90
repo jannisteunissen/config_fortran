@@ -32,8 +32,8 @@ program test_m_config2
   call CFG_add(my_cfg, "array%int", [1, 2], "my_ints", dynamic_size=.true.)
   call CFG_add(my_cfg, "array%string", ["A", "B"], "my_strings", dynamic_size=.true.)
 
-  call CFG_write(my_cfg, "stdout")                       ! Write to screen
-  call CFG_write(my_cfg, "example_2_output.cfg")         ! Write to file
-  call CFG_write_markdown(my_cfg, "example_2_output.md") ! Write markdown file
+  call CFG_write(my_cfg, "stdout", custom_first=.true.) ! Write to screen
+  call CFG_write(my_cfg, "example_2_output.cfg")           ! Write to file
+  call CFG_write_markdown(my_cfg, "example_2_output.md")   ! Write markdown file
 
 end program test_m_config2
