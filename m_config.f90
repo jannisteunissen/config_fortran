@@ -121,24 +121,41 @@ contains
 
   !> Read command line arguments. Both files and variables can be specified, for
   !> example as: ./my_program config.cfg -n_runs=3
-  subroutine CFG_update_from_arguments(cfg)
+  !>
+  !> config files should have an extension .cfg or .txt
+  !> command line arguments should be preceded by a single dash
+  subroutine CFG_update_from_arguments(cfg, ignore_unknown)
     type(CFG_t),intent(inout)     :: cfg
+    !> Ignore unknown arguments (default: false)
+    logical, intent(in), optional :: ignore_unknown
     character(len=CFG_string_len) :: arg
-    integer                       :: ix
-    logical                       :: valid_syntax
+    integer                       :: ix, n
+    logical                       :: valid_syntax, strict
+    character(len=4)              :: extension
+
+    strict = .true.; if (present(ignore_unknown)) strict = .not. ignore_unknown
 
     do ix = 1, command_argument_count()
        call get_command_argument(ix, arg)
 
-       if (arg(1:1) == '-') then
+       n = len_trim(arg)
+       if (n > 3) extension = arg(n-3:)
+
+       ! Look for arguments starting with a single dash
+       if (arg(1:1) == '-' .and. arg(2:2) /= '-') then
           ! This sets a variable
           call parse_line(cfg, arg(2:), valid_syntax)
           if (.not. valid_syntax) then
              call handle_error("Invalid variable specified on command line")
           end if
-       else
-          ! This is a configuration files
+       else if (arg(1:1) /= '-' .and. &
+            (extension == ".cfg" .or. extension == ".txt")) then
+          ! Read a configuration file
           call CFG_read_file(cfg, trim(arg))
+       else if (strict) then
+          print *, "This error message can be disabled by setting"
+          print *, "ignore_unknown = .true. for CFG_update_from_arguments"
+          call handle_error("Unknown argument: " // trim(arg))
        end if
     end do
   end subroutine CFG_update_from_arguments
