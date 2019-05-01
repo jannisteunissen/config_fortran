@@ -7,22 +7,23 @@ else ifeq ($(F90), ifort)
 	FFLAGS	:= -O2 -stand f08 -warn all
 endif
 
-OBJS	:= m_config.o
+OBJS := m_config.o
+LIB := libconfig_fortran.a
+EXAMPLES := example_1 example_2
 
 .PHONY:	all test clean
 
-all: 	libconfig_fortran.a example_1 example_2
+all: 	$(LIB) $(EXAMPLES)
 
-libconfig_fortran.a: $(OBJS)
+$(LIB): $(OBJS)
 	$(RM) $@
 	$(AR) rcs $@ $^
 
 clean:
-	$(RM) example_1 example_2 m_config.o m_config.mod libconfig_fortran.a
+	$(RM) $(EXAMPLES) m_config.o m_config.mod $(LIB)
 
 # Dependency information
-example_1:	m_config.o
-example_2:	m_config.o
+$(EXAMPLES): m_config.o
 
 # How to get .o object files from .f90 source files
 %.o: %.f90
