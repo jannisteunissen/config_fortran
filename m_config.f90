@@ -493,6 +493,7 @@ contains
           end if
        end do
     else
+       n_custom_set = -1        ! To prevent undefined warning
        cfg_order(:) = [(i, i = 1, cfg%num_vars)]
     end if
 
