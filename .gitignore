@@ -5,3 +5,5 @@ test_m_config
 *.a
 example_1
 example_2
+/example_2_output.cfg
+/example_2_output.md

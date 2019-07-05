@@ -124,6 +124,7 @@ module m_config
   public :: CFG_write_markdown
   public :: CFG_read_file
   public :: CFG_update_from_arguments
+  public :: CFG_update_from_line
   public :: CFG_clear
 
 contains
@@ -169,6 +170,20 @@ contains
        end if
     end do
   end subroutine CFG_update_from_arguments
+
+  !> Update the configuration by parsing a line
+  subroutine CFG_update_from_line(cfg, line)
+    type(CFG_t), intent(inout)   :: cfg
+    character(len=*), intent(in) :: line
+    logical                      :: valid_syntax
+
+    ! This sets a variable
+    call parse_line(cfg, CFG_set_by_arg, line, valid_syntax)
+
+    if (.not. valid_syntax) then
+       call handle_error("CFG_set: invalid syntax")
+    end if
+  end subroutine CFG_update_from_line
 
   !> This routine will be called if an error occurs in one of the subroutines of
   !> this module.
