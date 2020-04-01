@@ -31,8 +31,10 @@ module m_config
   !> Maximum number of entries in a variable (if it's an array)
   integer, parameter :: CFG_max_array_size = 1000
 
+  character, parameter :: tab_char = char(9)
+
   !> The separator(s) for array-like variables (space, comma, ', ", and tab)
-  character(len=*), parameter :: CFG_separators = " ,'"""//char(9)
+  character(len=*), parameter :: CFG_separators = " ,'"""//tab_char
 
   !> The separator for categories (stored in var_name)
   character(len=*), parameter :: CFG_category_separator = "%"
@@ -315,9 +317,13 @@ contains
     end if
 
     ! If there are less than two spaces or a tab, reset to no category
-    if (var_name(1:2) /= " " .and. var_name(1:1) /= char(9)) then
+    if (var_name(1:2) /= " " .and. var_name(1:1) /= tab_char) then
        category = ""
     end if
+
+    ! Replace leading tabs by spaces
+    ix = verify(var_name, tab_char) ! Find first non-tab character
+    var_name(1:ix-1) = ""
 
     ! Remove leading blanks
     var_name = adjustl(var_name)
@@ -1181,7 +1187,7 @@ contains
   subroutine get_fields_string(line, delims, n_max, n_found, ixs_start, ixs_end)
     !> The line from which we want to read
     character(len=*), intent(in)  :: line
-    !> A string with delimiters. For example delims = " ,'"""//char(9)
+    !> A string with delimiters. For example delims = " ,'"""//tab_char
     character(len=*), intent(in)  :: delims
     !> Maximum number of entries to read in
     integer, intent(in)           :: n_max
