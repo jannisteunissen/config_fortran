@@ -1,4 +1,7 @@
 !> Module that allows working with a configuration file
+!>
+!> Author: Jannis Teunissen and others
+!> Repository: https://github.com/jannisteunissen/config_fortran
 module m_config
 
   implicit none
