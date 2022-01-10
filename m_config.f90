@@ -162,7 +162,7 @@ contains
           call parse_line(cfg, CFG_set_by_arg, arg(2:), valid_syntax)
 
           if (.not. valid_syntax) then
-             call handle_error("Invalid variable specified on command line")
+             call handle_error("Invalid syntax on command line: " // trim(arg))
           end if
        else if (arg(1:1) /= '-' .and. &
             (extension == ".cfg" .or. extension == ".txt")) then
