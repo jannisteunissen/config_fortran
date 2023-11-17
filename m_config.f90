@@ -30,6 +30,8 @@ module m_config
 
   integer, parameter :: CFG_name_len   = 80  !< Maximum length of variable names
   integer, parameter :: CFG_string_len = 200 !< Fixed length of string type
+  !> Maximum length of line containing multiple arguments/values
+  integer, parameter :: CFG_max_line_len = 1000
 
   !> Maximum number of entries in a variable (if it's an array)
   integer, parameter :: CFG_max_array_size = 1000
@@ -63,7 +65,7 @@ module m_config
      !> How the variable has been set (default, command line, file)
      integer                       :: set_by = CFG_set_by_default
      !> Data that has been read in for this variable
-     character(len=CFG_string_len) :: stored_data
+     character(len=CFG_max_line_len) :: stored_data
 
      ! These are the arrays used for storage. In the future, a "pointer" based
      ! approach could be used.
@@ -115,6 +117,7 @@ module m_config
   ! Constants
   public :: CFG_name_len
   public :: CFG_string_len
+  public :: CFG_max_line_len
   public :: CFG_max_array_size
 
   ! Public methods
@@ -143,15 +146,21 @@ contains
     type(CFG_t),intent(inout)     :: cfg
     !> Ignore unknown arguments (default: false)
     logical, intent(in), optional :: ignore_unknown
-    character(len=CFG_string_len) :: arg
-    integer                       :: ix, n
+    character(len=CFG_max_line_len) :: arg
+    integer                       :: ix, n, arg_status
     logical                       :: valid_syntax, strict
     character(len=4)              :: extension
 
     strict = .true.; if (present(ignore_unknown)) strict = .not. ignore_unknown
 
     do ix = 1, command_argument_count()
-       call get_command_argument(ix, arg)
+       call get_command_argument(ix, arg, status=arg_status)
+
+       if (arg_status > 0) then
+          call handle_error("Error in get_command_argument (status > 0)")
+       else if (arg_status == -1) then
+          call handle_error("Argument too long, increase CFG_max_line_len")
+       end if
 
        n = len_trim(arg)
        if (n > 3) extension = arg(n-3:)
@@ -236,11 +245,11 @@ contains
     logical :: valid_syntax
     character(len=CFG_name_len)   :: line_fmt
     character(len=CFG_string_len) :: err_string
-    character(len=CFG_string_len) :: line
+    character(len=CFG_max_line_len) :: line
     character(len=CFG_name_len)   :: category
 
     open(my_unit, file=trim(filename), status="old", action="read")
-    write(line_fmt, "(A,I0,A)") "(A", CFG_string_len, ")"
+    write(line_fmt, "(A,I0,A)") "(A", CFG_max_line_len, ")"
 
     category    = "" ! Default category is empty
     line_number = 0
@@ -248,6 +257,12 @@ contains
     do
        read(my_unit, FMT=trim(line_fmt), ERR=998, end=999) line
        line_number = line_number + 1
+
+       if (len_trim(line) > CFG_max_line_len - 2) then
+          write(err_string, *) "Possible truncation in line ", line_number, &
+               " from ", trim(filename)
+          call handle_error(err_string)
+       end if
 
        call parse_line(cfg, CFG_set_by_file, line, valid_syntax, category)
 
@@ -279,7 +294,7 @@ contains
     character(len=CFG_name_len)                          :: var_name, category
     integer                                              :: ix, equal_sign_ix
     logical                                              :: append
-    character(len=CFG_string_len)                        :: line
+    character(len=CFG_max_line_len)                      :: line
 
     valid_syntax = .true.
 
