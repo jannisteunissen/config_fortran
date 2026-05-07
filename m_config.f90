@@ -127,6 +127,7 @@ module m_config
   public :: CFG_get_size
   public :: CFG_get_type
   public :: CFG_check
+  public :: CFG_print_help
   public :: CFG_sort
   public :: CFG_write
   public :: CFG_write_markdown
@@ -165,9 +166,10 @@ contains
        n = len_trim(arg)
        if (n > 3) extension = arg(n-3:)
 
-       ! Look for arguments starting with a single dash
-       if (arg(1:1) == '-' .and. arg(2:2) /= '-') then
-          ! This sets a variable
+       if (arg == "-help" .or. arg == "--help") then
+          call CFG_print_help(cfg, .true.)
+       else if (arg(1:1) == '-' .and. arg(2:2) /= '-') then
+          ! Look for arguments starting with a single dash, which set a variable
           call parse_line(cfg, CFG_set_by_arg, arg(2:), valid_syntax)
 
           if (.not. valid_syntax) then
@@ -475,6 +477,94 @@ contains
        end if
     end do
   end subroutine CFG_check
+
+  !> Print a help message with all configuration variables, their types,
+  !> default values, and descriptions. Optionally stop the program afterwards.
+  subroutine CFG_print_help(cfg, stop_after)
+    type(CFG_t), intent(inout)    :: cfg
+    !> Whether to stop the program after printing help (default: true)
+    logical, intent(in), optional :: stop_after
+    logical                       :: do_stop
+    integer                       :: i, j
+    type(CFG_t)                   :: cfg_sorted
+    character(len=CFG_name_len)   :: category, prev_category, var_name
+
+    do_stop = .true.
+    if (present(stop_after)) do_stop = stop_after
+
+    ! Work on a sorted copy
+    cfg_sorted = cfg
+    if (.not. cfg_sorted%sorted) call CFG_sort(cfg_sorted)
+
+    write(*, "(A)") ""
+    write(*, "(A)") "Available configuration options:"
+    write(*, "(A)") "================================"
+    write(*, "(A)") ""
+
+    prev_category = ""
+
+    do i = 1, cfg_sorted%num_vars
+       if (cfg_sorted%vars(i)%var_type == CFG_unknown_type) cycle
+
+       call split_category(cfg_sorted%vars(i), category, var_name)
+
+       if (category /= prev_category) then
+          if (category /= "") then
+             write(*, "(A)") "[" // trim(category) // "]"
+          end if
+          prev_category = category
+       end if
+
+       ! Print variable name and type
+       if (cfg_sorted%vars(i)%var_size > 1) then
+          write(*, "(A,A,A,A,A,I0,A)", advance="no") "  ", trim(var_name), &
+               " (", trim(CFG_type_names(cfg_sorted%vars(i)%var_type)), &
+               " array, size ", cfg_sorted%vars(i)%var_size, ")"
+       else
+          write(*, "(A,A,A,A,A)", advance="no") "  ", trim(var_name), &
+               " (", trim(CFG_type_names(cfg_sorted%vars(i)%var_type)), ")"
+       end if
+
+       if (cfg_sorted%vars(i)%dynamic_size) then
+          write(*, "(A)", advance="no") " [dynamic]"
+       end if
+       write(*, "(A)") ""
+
+       ! Print description
+       write(*, "(A,A)") "      ", trim(cfg_sorted%vars(i)%description)
+
+       ! Print default value(s)
+       write(*, "(A)", advance="no") "      Default:"
+       select case (cfg_sorted%vars(i)%var_type)
+       case (CFG_integer_type)
+          do j = 1, cfg_sorted%vars(i)%var_size
+             write(*, "(A,I0)", advance="no") " ", &
+                  cfg_sorted%vars(i)%int_data(j)
+          end do
+       case (CFG_real_type)
+          do j = 1, cfg_sorted%vars(i)%var_size
+             write(*, "(A,ES11.4)", advance="no") " ", &
+                  cfg_sorted%vars(i)%real_data(j)
+          end do
+       case (CFG_string_type)
+          do j = 1, cfg_sorted%vars(i)%var_size
+             write(*, "(A)", advance="no") " '" // &
+                  trim(cfg_sorted%vars(i)%char_data(j)) // "'"
+          end do
+       case (CFG_logic_type)
+          do j = 1, cfg_sorted%vars(i)%var_size
+             write(*, "(A,L1)", advance="no") " ", &
+                  cfg_sorted%vars(i)%logic_data(j)
+          end do
+       end select
+       write(*, "(A)") ""
+       write(*, "(A)") ""
+    end do
+
+    write(*, "(A)") "Usage: set variables with -name=value or via .cfg files"
+
+    if (do_stop) stop
+  end subroutine CFG_print_help
 
   !> This routine writes the current configuration to a file with descriptions
   subroutine CFG_write(cfg_in, filename, hide_unused, custom_first)
