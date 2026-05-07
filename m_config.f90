@@ -60,6 +60,8 @@ module m_config
      integer                       :: var_size
      !> Whether the variable size is flexible
      logical                       :: dynamic_size
+     !> Whether the variable has to be specified
+     logical                       :: required
      !> Whether the variable's value has been requested
      logical                       :: used
      !> How the variable has been set (default, command line, file)
@@ -847,12 +849,13 @@ contains
   !> Helper routine to store variables. This is useful because a lot of the same
   !> code is executed for the different types of variables.
   subroutine prepare_store_var(cfg, var_name, var_type, var_size, &
-       description, ix, dynamic_size)
+       description, ix, dynamic_size, required)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, description
     integer, intent(in)           :: var_type, var_size
     integer, intent(out)          :: ix !< Index of variable
     logical, intent(in), optional :: dynamic_size
+    logical, intent(in), optional :: required
 
     if (len_trim(var_name) > CFG_name_len) then
        call handle_error("prepare_store_var: variable length [" // &
@@ -886,6 +889,12 @@ contains
        cfg%vars(ix)%dynamic_size = dynamic_size
     else
        cfg%vars(ix)%dynamic_size = .false.
+    end if
+
+    if (present(required)) then
+       cfg%vars(ix)%required = required
+    else
+       cfg%vars(ix)%required = .false.
     end if
 
     select case (var_type)
@@ -925,19 +934,26 @@ contains
             // var_name // "] has different size (", cfg%vars(ix)%var_size, &
             ") than requested (", var_size, ")"
        call handle_error(err_string)
+    else if (cfg%vars(ix)%required .and. &
+         cfg%vars(ix)%set_by == CFG_set_by_default) then
+       write(err_string, fmt="(A)") "CFG_get: variable [" &
+            // var_name // "] is required but was not specified"
+       call handle_error(err_string)
     else                        ! All good, variable will be used
        cfg%vars(ix)%used = .true.
     end if
   end subroutine prepare_get_var
 
   !> Add a configuration variable with a real value
-  subroutine add_real(cfg, var_name, real_data, comment)
+  subroutine add_real(cfg, var_name, real_data, comment, required)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name, comment
     real(dp), intent(in)         :: real_data
+    logical, intent(in), optional :: required
     integer                      :: ix
 
-    call prepare_store_var(cfg, var_name, CFG_real_type, 1, comment, ix)
+    call prepare_store_var(cfg, var_name, CFG_real_type, 1, comment, &
+         ix, .false., required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -948,15 +964,17 @@ contains
 
   !> Add a configuration variable with an array of type
   !  real
-  subroutine add_real_array(cfg, var_name, real_data, comment, dynamic_size)
+  subroutine add_real_array(cfg, var_name, real_data, comment, &
+       dynamic_size, required)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, comment
     real(dp), intent(in)          :: real_data(:)
     logical, intent(in), optional :: dynamic_size
+    logical, intent(in), optional :: required
     integer                       :: ix
 
     call prepare_store_var(cfg, var_name, CFG_real_type, &
-         size(real_data), comment, ix, dynamic_size)
+         size(real_data), comment, ix, dynamic_size, required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -966,13 +984,15 @@ contains
   end subroutine add_real_array
 
   !> Add a configuration variable with an integer value
-  subroutine add_int(cfg, var_name, int_data, comment)
+  subroutine add_int(cfg, var_name, int_data, comment, required)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name, comment
     integer, intent(in)          :: int_data
+    logical, intent(in), optional :: required
     integer                      :: ix
 
-    call prepare_store_var(cfg, var_name, CFG_integer_type, 1, comment, ix)
+    call prepare_store_var(cfg, var_name, CFG_integer_type, 1, comment, &
+         ix, .false., required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -982,15 +1002,17 @@ contains
   end subroutine add_int
 
   !> Add a configuration variable with an array of type integer
-  subroutine add_int_array(cfg, var_name, int_data, comment, dynamic_size)
+  subroutine add_int_array(cfg, var_name, int_data, comment, &
+       dynamic_size, required)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, comment
     integer, intent(in)           :: int_data(:)
     logical, intent(in), optional :: dynamic_size
+    logical, intent(in), optional :: required
     integer                       :: ix
 
     call prepare_store_var(cfg, var_name, CFG_integer_type, &
-         size(int_data), comment, ix, dynamic_size)
+         size(int_data), comment, ix, dynamic_size, required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -1000,12 +1022,15 @@ contains
   end subroutine add_int_array
 
   !> Add a configuration variable with an character value
-  subroutine add_string(cfg, var_name, char_data, comment)
+  subroutine add_string(cfg, var_name, char_data, comment, required)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name, comment, char_data
+    logical, intent(in), optional :: required
     integer                      :: ix
 
-    call prepare_store_var(cfg, var_name, CFG_string_type, 1, comment, ix)
+    call prepare_store_var(cfg, var_name, CFG_string_type, 1, comment, &
+         ix, .false., required)
+
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
     else
@@ -1015,14 +1040,15 @@ contains
 
   !> Add a configuration variable with an array of type character
   subroutine add_string_array(cfg, var_name, char_data, &
-       comment, dynamic_size)
+       comment, dynamic_size, required)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, comment, char_data(:)
     logical, intent(in), optional :: dynamic_size
+    logical, intent(in), optional :: required
     integer                       :: ix
 
     call prepare_store_var(cfg, var_name, CFG_string_type, &
-         size(char_data), comment, ix, dynamic_size)
+         size(char_data), comment, ix, dynamic_size, required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -1032,13 +1058,15 @@ contains
   end subroutine add_string_array
 
   !> Add a configuration variable with an logical value
-  subroutine add_logic(cfg, var_name, logic_data, comment)
+  subroutine add_logic(cfg, var_name, logic_data, comment, required)
     type(CFG_t), intent(inout)   :: cfg
     character(len=*), intent(in) :: var_name, comment
     logical, intent(in)          :: logic_data
+    logical, intent(in), optional :: required
     integer                      :: ix
 
-    call prepare_store_var(cfg, var_name, CFG_logic_type, 1, comment, ix)
+    call prepare_store_var(cfg, var_name, CFG_logic_type, 1, comment, &
+         ix, .false., required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
@@ -1049,15 +1077,16 @@ contains
 
   !> Add a configuration variable with an array of type logical
   subroutine add_logic_array(cfg, var_name, logic_data, &
-       comment, dynamic_size)
+       comment, dynamic_size, required)
     type(CFG_t), intent(inout)    :: cfg
     character(len=*), intent(in)  :: var_name, comment
     logical, intent(in)           :: logic_data(:)
     logical, intent(in), optional :: dynamic_size
+    logical, intent(in), optional :: required
     integer                       :: ix
 
     call prepare_store_var(cfg, var_name, CFG_logic_type, &
-         size(logic_data), comment, ix, dynamic_size)
+         size(logic_data), comment, ix, dynamic_size, required)
 
     if (cfg%vars(ix)%stored_data /= unstored_data_string) then
        call read_variable(cfg%vars(ix))
