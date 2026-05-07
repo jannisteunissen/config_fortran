@@ -9,7 +9,7 @@ endif
 
 OBJS := m_config.o
 LIB := libconfig_fortran.a
-EXAMPLES := example_1 example_2
+EXAMPLES := example_1 example_2 example_3
 
 .PHONY:	all test clean
 
