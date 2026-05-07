@@ -511,9 +511,7 @@ contains
        call split_category(cfg_sorted%vars(i), category, var_name)
 
        if (category /= prev_category) then
-          if (category /= "") then
-             write(*, "(A)") "[" // trim(category) // "]"
-          end if
+          write(*, "(A)") "[" // trim(category) // "]"
           prev_category = category
        end if
 
