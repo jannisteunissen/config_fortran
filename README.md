@@ -68,7 +68,7 @@ Note that variable specifications should be preceded by a dash (`-`).
 
 ## Showing a help message
 
-A method `CFG_print_help` is provided that shows all options, their types, and their default values. This method is automatically called when `CFG_update_from_arguments` encounters an argument `-help` or `--help`.
+A method `CFG_print_help` is provided that shows all options, their types, and their default values. This method is automatically called when `CFG_check` encounters an argument `-help` or `--help`.
 
 ## Configuration file syntax
 

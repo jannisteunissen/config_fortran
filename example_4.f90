@@ -6,7 +6,7 @@ program test_m_config4
 
   print *, "Testing m_config.f90 (test 4)"
   print *, "This code calls CFG_print_help, which happens automatically when"
-  print *, "-help or --help is parsed by CFG_update_from_arguments"
+  print *, "-help or --help is parsed by CFG_check"
 
   call CFG_add(my_cfg, "filename", "this/is/a/filename", &
        "A string containing a filename")
@@ -19,7 +19,10 @@ program test_m_config4
   call CFG_add(my_cfg, "author%lots_of_work", .true., &
        "Whether I have a lot of work to do")
 
+  call CFG_update_from_arguments(my_cfg)
   call CFG_check(my_cfg)
+
+  print *, "Now calling CFG_print_help"
   call CFG_print_help(my_cfg)
 
 end program test_m_config4

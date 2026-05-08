@@ -80,6 +80,7 @@ module m_config
   !> The configuration that contains all the variables
   type CFG_t
      logical                      :: sorted = .false.
+     logical                      :: print_help = .false.
      integer                      :: num_vars = 0
      type(CFG_var_t), allocatable :: vars(:)
   end type CFG_t
@@ -169,7 +170,8 @@ contains
        if (n > 3) extension = arg(n-3:)
 
        if (arg == "-help" .or. arg == "--help") then
-          call CFG_print_help(cfg, .true.)
+          ! Print a help message when CFG_check is called
+          cfg%print_help = .true.
        else if (arg(1:1) == '-' .and. arg(2:2) /= '-') then
           ! Look for arguments starting with a single dash, which set a variable
           call parse_line(cfg, CFG_set_by_arg, arg(2:), valid_syntax)
@@ -466,10 +468,15 @@ contains
 
   end subroutine trim_comment
 
-  subroutine CFG_check(cfg)
+  subroutine CFG_check(cfg, stop_after_help)
     type(CFG_t), intent(in)       :: cfg
+    logical, intent(in), optional :: stop_after_help
     integer                       :: n
     character(len=CFG_string_len) :: err_string
+
+    if (cfg%print_help) then
+       call CFG_print_help(cfg, stop_after_help)
+    end if
 
     do n = 1, cfg%num_vars
        if (cfg%vars(n)%var_type == CFG_unknown_type) then
@@ -483,7 +490,7 @@ contains
   !> Print a help message with all configuration variables, their types,
   !> default values, and descriptions. Optionally stop the program afterwards.
   subroutine CFG_print_help(cfg, stop_after)
-    type(CFG_t), intent(inout)    :: cfg
+    type(CFG_t), intent(in)       :: cfg
     !> Whether to stop the program after printing help (default: true)
     logical, intent(in), optional :: stop_after
     logical                       :: do_stop
