@@ -482,6 +482,8 @@ contains
        if (cfg%vars(n)%var_type == CFG_unknown_type) then
           write(err_string, *) "CFG_check: unknown variable ", &
                trim(cfg%vars(n)%var_name), " specified"
+          ! Hint for possible typo
+          call suggest_unknown_arg(cfg, trim(cfg%vars(n)%var_name))
           call handle_error(err_string)
        end if
     end do
@@ -1551,5 +1553,67 @@ contains
        deallocate(cfg%vars)
     endif
   end subroutine CFG_clear
+
+  !> Print a hint for an unknown command-line argument. If a known variable
+  !> name is close enough, suggest it.
+  subroutine suggest_unknown_arg(cfg, arg)
+    type(CFG_t), intent(in)      :: cfg
+    character(len=*), intent(in) :: arg
+    character(len=CFG_name_len)  :: candidate
+    integer                      :: i, best_dist, dist
+    integer, parameter           :: max_dist = 2
+
+    best_dist = huge(0)
+    candidate = ''
+
+    do i = 1, cfg%num_vars
+       if (cfg%vars(i)%var_type == CFG_unknown_type) cycle
+       dist = levenshtein(trim(arg), trim(cfg%vars(i)%var_name))
+       if (dist < best_dist) then
+          best_dist = dist
+          candidate = cfg%vars(i)%var_name
+       end if
+    end do
+
+    if (best_dist <= max_dist) then
+       write(*,*) ' Unknown variable: ' // trim(arg)
+       write(*,*) ' Did you mean: ' // trim(candidate) // ' ?'
+    end if
+  end subroutine suggest_unknown_arg
+
+  ! Simple Levenshtein distance (edit-distance) implementation. Returns the
+  ! number of single-character insertions, deletions or substitutions needed
+  ! to turn s1 into s2.
+  integer function levenshtein(s1, s2)
+    character(len=*), intent(in) :: s1, s2
+    character(len=:), allocatable :: a, b
+    integer, allocatable :: d(:,:)
+    integer :: i, j, cost, len1, len2
+
+    a = trim(s1); b = trim(s2)
+    len1 = len_trim(a); len2 = len_trim(b)
+
+    allocate(d(0:len1,0:len2))
+    do i = 0, len1
+       d(i,0) = i
+    end do
+    do j = 0, len2
+       d(0,j) = j
+    end do
+
+    do i = 1, len1
+       do j = 1, len2
+          if (a(i:i) == b(j:j)) then
+             cost = 0
+          else
+             cost = 1
+          end if
+          d(i,j) = min( d(i-1,j)   + 1,  &   ! deletion
+                        d(i,  j-1) + 1,  &   ! insertion
+                        d(i-1,j-1) + cost )   ! substitution
+       end do
+    end do
+    levenshtein = d(len1,len2)
+  end function levenshtein
 
 end module m_config
