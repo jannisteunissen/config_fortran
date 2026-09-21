@@ -38,8 +38,7 @@ read the file first, and to combine the `add` and the `get`:
 
 When parsing the input file, the variable `n_grid` will be stored as plain text,
 since its type is not yet known. The call `CFG_add_get` converts it to the right
-type. The files `example_1.f90`, `example_2.f90`, `example_3.f90`, and `example_4.f90` provide further usage examples
-examples.
+type. The files `example_1.f90`, `example_2.f90`, `example_3.f90`, and `example_4.f90` provide further usage examples.
 
 The current configuration can be stored in a file with `CFG_write`, which can
 then be used as input again. It is also possible to write markdown files with
