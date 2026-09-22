@@ -468,14 +468,18 @@ contains
 
   end subroutine trim_comment
 
-  subroutine CFG_check(cfg, stop_after_help)
-    type(CFG_t), intent(in)       :: cfg
-    logical, intent(in), optional :: stop_after_help
-    integer                       :: n
-    character(len=CFG_string_len) :: err_string
+  subroutine CFG_check(cfg, stop_after_help, help_printed)
+    type(CFG_t), intent(in)        :: cfg
+    logical, intent(in), optional  :: stop_after_help
+    logical, intent(out), optional :: help_printed
+    integer                        :: n
+    character(len=CFG_string_len)  :: err_string
+
+    if (present(help_printed)) help_printed = .false.
 
     if (cfg%print_help) then
        call CFG_print_help(cfg, stop_after_help)
+       if (present(help_printed)) help_printed = .true.
     end if
 
     do n = 1, cfg%num_vars
