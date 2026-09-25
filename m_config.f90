@@ -167,6 +167,7 @@ contains
        end if
 
        n = len_trim(arg)
+       extension = ""
        if (n > 3) extension = arg(n-3:)
 
        if (arg == "-help" .or. arg == "--help") then
